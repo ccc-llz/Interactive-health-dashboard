@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import SideBar from './components/sidebar'
+import SideBar from './components/Sidebar'
 import Home from './pages/Home'
 import ChartDemo from './pages/ChartDemo'
 

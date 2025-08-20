@@ -48,14 +48,14 @@ function SideBar({className, ...props} : {className?: string, props?: React.Reac
                     Here is icon
                 </h1>
             </div>
-            <div id='nav-main' className='flex flex-col gap-2'>
+            <div id='nav-main' className='flex flex-col gap-1'>
                 {sidebarData.navMain.map((item) => (
                     <SidebarMenuItem item={item} key={item.title} isSelected={isItemSelected(item.url)}/>
                 ))}
             </div>
         </div>
         <div id='bottom-area' className='flex flex-col gap-5'>
-            <div id='bottom-navigate' className='flex flex-col gap-0'>
+            <div id='bottom-navigate' className='flex flex-col gap-1'>
                 {sidebarData.navBottoms.map((item) => (
                     <SidebarMenuItem item={item} key={item.title} isSelected={isItemSelected(item.url)}/>
                 ))}
