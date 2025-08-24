@@ -1,14 +1,15 @@
 package com.cs79_1.interactive_dashboard.Enum;
 
 
-public enum hfzFatMass {
+public enum HFZClassification {
     HFZ("Healthy Fitness Zone"),
     NI("Needs Improvement"),
-    NIHR("Needs Improvement - Health Risk");
+    NIHR("Needs Improvement - Health Risk"),
+    VL("Very Low");
 
     private String description;
 
-    hfzFatMass(String description) {
+    HFZClassification(String description) {
         this.description = description;
     }
 

@@ -1,6 +1,6 @@
 package com.cs79_1.interactive_dashboard.Entity;
 
-import com.cs79_1.interactive_dashboard.Enum.hfzFatMass;
+import com.cs79_1.interactive_dashboard.Enum.HFZClassification;
 import jakarta.persistence.*;
 
 @Entity
@@ -18,10 +18,21 @@ public class BodyComposition {
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private hfzFatMass hfzFatMass;
+    private HFZClassification hfzFatPercentage;
+
+    @Column(nullable = false)
+    private double fatMass;
+
+    @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false)
+    private HFZClassification hfzFatMass;
 
     @Column(nullable = false)
     private double BMI;
+
+    @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false)
+    private HFZClassification hfzBMI;
 
     @Column(nullable = false)
     private double fatAmount;
@@ -76,11 +87,27 @@ public class BodyComposition {
         this.fatPercentage = fatPercentage;
     }
 
-    public com.cs79_1.interactive_dashboard.Enum.hfzFatMass getHfzFatMass() {
+    public HFZClassification getHfzFatPercentage() {
+        return hfzFatPercentage;
+    }
+
+    public void setFatMass(double fatMass) {
+        this.fatMass = fatMass;
+    }
+
+    public double getFatMass() {
+        return fatMass;
+    }
+
+    public void setHfzFatPercentage(HFZClassification hfzFatPercentage) {
+        this.hfzFatPercentage = hfzFatPercentage;
+    }
+
+    public HFZClassification getHfzFatMass() {
         return hfzFatMass;
     }
 
-    public void setHfzFatMass(com.cs79_1.interactive_dashboard.Enum.hfzFatMass hfzFatMass) {
+    public void setHfzFatMass(HFZClassification hfzFatMass) {
         this.hfzFatMass = hfzFatMass;
     }
 
@@ -90,6 +117,14 @@ public class BodyComposition {
 
     public void setBMI(double BMI) {
         this.BMI = BMI;
+    }
+
+    public HFZClassification getHfzBMI() {
+        return hfzBMI;
+    }
+
+    public void setHfzBMI(HFZClassification hfzBMI) {
+        this.hfzBMI = hfzBMI;
     }
 
     public double getFatAmount() {

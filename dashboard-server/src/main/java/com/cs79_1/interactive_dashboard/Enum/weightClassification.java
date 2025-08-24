@@ -1,6 +1,6 @@
 package com.cs79_1.interactive_dashboard.Enum;
 
-public enum weightClassification {
+public enum WeightClassification {
     Normal("Normal"),
     Surpoids("Surpoids"),
     Obese("Obese"),
@@ -8,7 +8,7 @@ public enum weightClassification {
 
     private String description;
 
-    weightClassification(String description) {
+    WeightClassification(String description) {
         this.description = description;
     }
 

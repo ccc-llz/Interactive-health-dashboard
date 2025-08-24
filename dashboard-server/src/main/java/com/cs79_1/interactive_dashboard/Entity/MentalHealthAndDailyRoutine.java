@@ -1,6 +1,6 @@
 package com.cs79_1.interactive_dashboard.Entity;
 
-import com.cs79_1.interactive_dashboard.Enum.mentalStrength;
+import com.cs79_1.interactive_dashboard.Enum.MentalStrength;
 import jakarta.persistence.*;
 
 @Entity
@@ -18,14 +18,14 @@ public class MentalHealthAndDailyRoutine {
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private mentalStrength selfesteemStrength;
+    private MentalStrength selfesteemStrength;
 
     @Column(nullable = false)
     private double procrastinationScore;
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private mentalStrength procrastinationStrength;
+    private MentalStrength procrastinationStrength;
 
     @Column(nullable = false)
     private double weekdaySleepingAvgDuration;
@@ -62,11 +62,11 @@ public class MentalHealthAndDailyRoutine {
         this.selfesteemScore = selfesteemScore;
     }
 
-    public mentalStrength getSelfesteemStrength() {
+    public MentalStrength getSelfesteemStrength() {
         return selfesteemStrength;
     }
 
-    public void setSelfesteemStrength(mentalStrength selfesteemStrength) {
+    public void setSelfesteemStrength(MentalStrength selfesteemStrength) {
         this.selfesteemStrength = selfesteemStrength;
     }
 
@@ -78,11 +78,11 @@ public class MentalHealthAndDailyRoutine {
         this.procrastinationScore = procrastinationScore;
     }
 
-    public mentalStrength getProcrastinationStrength() {
+    public MentalStrength getProcrastinationStrength() {
         return procrastinationStrength;
     }
 
-    public void setProcrastinationStrength(mentalStrength procrastinationStrength) {
+    public void setProcrastinationStrength(MentalStrength procrastinationStrength) {
         this.procrastinationStrength = procrastinationStrength;
     }
 

@@ -1,6 +1,6 @@
 package com.cs79_1.interactive_dashboard.Enum;
 
-public enum mentalStrength {
+public enum MentalStrength {
     High,
     Low,
     Medium,

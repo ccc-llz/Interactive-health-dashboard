@@ -1,6 +1,6 @@
 package com.cs79_1.interactive_dashboard.Entity;
 
-import com.cs79_1.interactive_dashboard.Enum.weightClassification;
+import com.cs79_1.interactive_dashboard.Enum.WeightClassification;
 import jakarta.persistence.*;
 
 @Entity
@@ -30,7 +30,7 @@ public class WeightMetrics {
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private weightClassification iotfClassification;
+    private WeightClassification iotfClassification;
 
     @Column(nullable = false)
     private double cacheraL;
@@ -49,7 +49,7 @@ public class WeightMetrics {
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private weightClassification cacheraClassification;
+    private WeightClassification cacheraClassification;
 
     @Column(nullable = false)
     private double omsL;
@@ -68,7 +68,7 @@ public class WeightMetrics {
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private weightClassification omsClassification;
+    private WeightClassification omsClassification;
 
     @Column(nullable = false)
     private double cdcL;
@@ -87,7 +87,7 @@ public class WeightMetrics {
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
-    private weightClassification cdcClassification;
+    private WeightClassification cdcClassification;
 
     public WeightMetrics() {}
 
@@ -147,11 +147,11 @@ public class WeightMetrics {
         this.iotfPercentile = iotfPercentile;
     }
 
-    public weightClassification getIotfClassification() {
+    public WeightClassification getIotfClassification() {
         return iotfClassification;
     }
 
-    public void setIotfClassification(weightClassification iotfClassification) {
+    public void setIotfClassification(WeightClassification iotfClassification) {
         this.iotfClassification = iotfClassification;
     }
 
@@ -195,11 +195,11 @@ public class WeightMetrics {
         this.cacheraPercentile = cacheraPercentile;
     }
 
-    public weightClassification getCacheraClassification() {
+    public WeightClassification getCacheraClassification() {
         return cacheraClassification;
     }
 
-    public void setCacheraClassification(weightClassification cacheraClassification) {
+    public void setCacheraClassification(WeightClassification cacheraClassification) {
         this.cacheraClassification = cacheraClassification;
     }
 
@@ -243,11 +243,11 @@ public class WeightMetrics {
         this.omsPercentile = omsPercentile;
     }
 
-    public weightClassification getOmsClassification() {
+    public WeightClassification getOmsClassification() {
         return omsClassification;
     }
 
-    public void setOmsClassification(weightClassification omsClassification) {
+    public void setOmsClassification(WeightClassification omsClassification) {
         this.omsClassification = omsClassification;
     }
 
@@ -291,11 +291,11 @@ public class WeightMetrics {
         this.cdcPercentile = cdcPercentile;
     }
 
-    public weightClassification getCdcClassification() {
+    public WeightClassification getCdcClassification() {
         return cdcClassification;
     }
 
-    public void setCdcClassification(weightClassification cdcClassification) {
+    public void setCdcClassification(WeightClassification cdcClassification) {
         this.cdcClassification = cdcClassification;
     }
 }
