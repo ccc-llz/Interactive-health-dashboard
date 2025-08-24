@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface WorkoutAmountRepository extends JpaRepository<WorkoutAmount, Long> {
-
+    public void deleteByUserId(Long userId);
 }
