@@ -1,13 +1,39 @@
-import { Alert, Button, Input, Switch, Tab, Tabs } from "@heroui/react";
+import { Alert, Button, Input, Progress, Switch, Tab, Tabs } from "@heroui/react";
 import { useState, useRef, useEffect } from "react";
 import { apiClient } from "../../service/axios";
 import { CircleCheck, CircleX } from "lucide-react";
 
 const IndividualAttributesImport = () => {
     const [isLoading, setIsLoading] = useState(false);
+    const [uploadProgress, setProgress] = useState(0);
     const [uploadedSuccessfully, setUploadedSuccessfully] = useState(false);
     const [uploadFailure, setUploadFailure] = useState(false);
     const [uploadFailureMessage, setUploadFailureMessage] = useState('');
+
+    const pollProgress = async (jobId) => {
+        const interval = setInterval(async () => {
+            try {
+                const { data } = await apiClient.get(`/ops/import/progress/${jobId}`);
+                console.log(data);
+
+                setProgress(data.percentage);
+
+                if (data.completed) {
+                    clearInterval(interval);
+                    setIsLoading(false);
+                    setUploadedSuccessfully(true);
+                } else if (!data) {
+                    clearInterval(interval);
+                    setIsLoading(false);
+                    setUploadFailure(true);
+                }
+            } catch (error) {
+                clearInterval(interval);
+                setIsLoading(false);
+                setUploadFailure(true);
+            }
+        }, 1000);
+    }
 
     const upload = () => {
         const input = document.createElement('input');
@@ -18,6 +44,7 @@ const IndividualAttributesImport = () => {
         input.onchange = async (e) => {
             setUploadedSuccessfully(false);
             setUploadFailure(false);
+            setProgress(0);
 
             const file = e!.target!.files[0];
             if (!file) return;
@@ -26,13 +53,14 @@ const IndividualAttributesImport = () => {
             const formData = new FormData();
             formData.append('file', file);
             try {
-                const response = await apiClient.post('/ops/import/individual-attributes', formData, {
+                const { data: jobId } = await apiClient.post('/ops/import/individual-attributes', formData, {
                     headers: {
-                        'Content-Type' : 'multipart/form-data'
+                        'Content-Type': 'multipart/form-data'
                     }
                 });
-                setIsLoading(false);
-                setUploadedSuccessfully(true);
+
+                pollProgress(jobId);
+
             } catch (error) {
                 console.error(error);
                 setIsLoading(false);
@@ -47,10 +75,11 @@ const IndividualAttributesImport = () => {
     return (
         <div className="flex items-center flex-col gap-2">
             <Button color='primary' className="m-2" isLoading={isLoading} onPress={upload}>
-                {!isLoading ? 'Upload File' : 'Uploading'}
+                Upload File
             </Button>
             <h3>Select the CSV file for Individual Attributes</h3>
             <h4>Please note that data of duplicate participants will be covered</h4>
+            {isLoading ? <Progress aria-label="Uploading" showValueLabel={true} size="md" value={uploadProgress}/> : ''}
             {uploadedSuccessfully ? <Alert color='success' title='Imported successfully!' /> : ''}
             {uploadFailure ? <Alert color='danger' title={uploadFailureMessage} /> : ''}
         </div>
@@ -58,13 +87,88 @@ const IndividualAttributesImport = () => {
 }
 
 const BatchWorkoutImport = () => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [uploadProgress, setProgress] = useState(0);
+    const [uploadedSuccessfully, setUploadedSuccessfully] = useState(false);
+    const [uploadFailure, setUploadFailure] = useState(false);
+    const [uploadFailureMessage, setUploadFailureMessage] = useState('');
+
+    const pollProgress = async (jobId) => {
+        const interval = setInterval(async () => {
+            try {
+                const { data } = await apiClient.get(`/ops/import/progress/${jobId}`);
+                console.log(data);
+
+                setProgress(data.percentage);
+
+                if (data.completed) {
+                    clearInterval(interval);
+                    setIsLoading(false);
+                    setUploadedSuccessfully(true);
+                } else if (!data) {
+                    clearInterval(interval);
+                    setIsLoading(false);
+                    setUploadFailure(true);
+                }
+            } catch (error) {
+                clearInterval(interval);
+                setIsLoading(false);
+                setUploadFailure(true);
+            }
+        }, 1000);
+    }
+
+    const upload = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.multiple = true;
+
+        input.onchange = async (e) => {
+            setUploadedSuccessfully(false);
+            setUploadFailure(false);
+            setProgress(0);
+
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            setIsLoading(true);
+            const formData = new FormData();
+
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const { data: jobId } = await apiClient.post('/ops/import/workout-batch', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                pollProgress(jobId);
+
+            } catch (error) {
+                console.error(error);
+                setIsLoading(false);
+                setUploadFailure(true);
+                setUploadFailureMessage("Errors occurred when uploading");
+            }
+        }
+
+        input.click();
+    }
+
     return (
         <div className="flex items-center flex-col gap-2">
-            <Button color='primary' className="m-2">
-                Upload Files
+            <Button color='primary' className="m-2" isLoading={isLoading} onPress={upload}>
+                Upload File
             </Button>
             <h3>Select the CSV files for Workout Data</h3>
             <h4>Please note that data of duplicate participants will be covered</h4>
+            {isLoading ? <Progress aria-label="Uploading" showValueLabel={true} size="md" value={uploadProgress}/> : ''}
+            {uploadedSuccessfully ? <Alert color='success' title='Imported successfully!' /> : ''}
+            {uploadFailure ? <Alert color='danger' title={uploadFailureMessage} /> : ''}
         </div>
     );
 }
