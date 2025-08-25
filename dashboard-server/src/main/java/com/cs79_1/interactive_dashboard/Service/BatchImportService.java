@@ -1,6 +1,7 @@
 package com.cs79_1.interactive_dashboard.Service;
 
-import com.cs79_1.interactive_dashboard.Controller.BatchImportController;
+import com.cs79_1.interactive_dashboard.DTO.FileInfo;
+import com.cs79_1.interactive_dashboard.DTO.ImportProgress;
 import com.cs79_1.interactive_dashboard.Entity.*;
 import com.cs79_1.interactive_dashboard.Enum.HFZClassification;
 import com.cs79_1.interactive_dashboard.Enum.MentalStrength;
@@ -11,18 +12,20 @@ import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @Service
@@ -56,6 +59,15 @@ public class BatchImportService {
 
     private static final Logger logger = LoggerFactory.getLogger(BatchImportService.class);
 
+    private final Map<String, ImportProgress> progressMap = new ConcurrentHashMap<>();
+
+    public ImportProgress getProgress(String jobId){
+        return progressMap.get(jobId);
+    }
+
+    public boolean isCompleted(String jobId){
+        return progressMap.get(jobId).isCompleted();
+    }
 
     @Transactional
     public void importIndividualAttributes(MultipartFile file) throws Exception {
@@ -63,7 +75,6 @@ public class BatchImportService {
         for(int i = 1; i < csvData.size(); i++){
             String[] row = csvData.get(i);
             try {
-                // TODO: Create and save Users with metrics
                 if(userRepository.existsByUsername(row[0])) {
                     userRepository.deleteByUsername(row[0]);
                 }
@@ -85,21 +96,120 @@ public class BatchImportService {
     }
 
     @Transactional
-    public void importMultipleWorkoutAmountData(MultipartFile[] files) throws Exception {
-        for (MultipartFile file : files) {
-            try {
-                String fileName = file.getOriginalFilename();
-                if (fileName == null || !fileName.endsWith(".csv")) {
-                    logger.error("Skipping non-CSV file: " + fileName);
-                    continue;
+    public void importIndividualAttributesWithProgress(Path filePath, String jobId) {
+
+        try {
+
+
+            List<String[]> csvData = parseCSV(filePath);
+            int totalRows = csvData.size() - 1;
+
+            ImportProgress progress = new ImportProgress(jobId, totalRows);
+            progressMap.put(jobId, progress);
+
+            for(int i = 1; i < csvData.size(); i++){
+                String[] row = csvData.get(i);
+                try {
+                    if(userRepository.existsByUsername(row[0])) {
+                        userRepository.deleteByUsername(row[0]);
+                    }
+
+                    User user = createUser(row);
+                    userRepository.save(user);
+
+                    saveBodyMetrics(user, row);
+                    saveBodyComposition(user, row);
+                    saveWeightMetrics(user, row);
+                    saveWeeklyIntake(user, row);
+                    saveMentalHealthAndDailyRoutine(user, row);
+
+                    progress.incrementProgress();
+                    progress.setCurrent(i);
+                    progress.setStatus("Processing " + i);
+                } catch (Exception e){
+                    entityManager.clear();
+                    progress.incrementFailed();
+                    progress.addError("Row " + i + ": " + e.getMessage());
+                    logger.error("Error occurs when processing row " + (i+1) + ": " + e.getMessage());
+                    e.printStackTrace();
                 }
+            }
 
-                String participantId = fileName.replace(".csv", "");
+            progress.setCompleted(true);
+            progress.setSuccess(true);
+        } catch (Exception e){
+            ImportProgress progress = progressMap.get(jobId);
+            if(progress != null){
+                progress.setStatus("Failed " + e.getMessage());
+                progress.setCompleted(true);
+            }
+            logger.error("Import failed: ", e);
+        }
+    }
 
-                importWorkoutAmountData(file, participantId);
-                logger.info("Successfully imported " + fileName);
-            } catch (Exception e) {
-                logger.error("Error importing " + file.getOriginalFilename() + ": " + e.getMessage());
+    @Transactional
+    public void importMultipleWorkoutAmountDataWithProgress(List<FileInfo> fileInfos, String jobId) {
+        try {
+            ImportProgress progress = new ImportProgress(jobId, fileInfos.size());
+            progressMap.put(jobId, progress);
+
+            for (int i = 0; i < fileInfos.size(); i++) {
+                FileInfo fileInfo = fileInfos.get(i);
+                Path filePath = fileInfo.getTempPath();
+                try {
+                    String fileName = fileInfo.getOriginalName();
+                    if (fileName == null || !fileName.endsWith(".csv")) {
+                        progress.incrementFailed();
+                        progress.addError(fileName + " is not a csv file");
+                        logger.error("Skipping non-CSV file: " + fileName);
+                        continue;
+                    }
+
+                    String participantId = fileName.replace(".csv", "");
+
+                    importWorkoutAmountData(filePath, participantId, fileName);
+                    progress.incrementProgress();
+                    progress.setCurrent(i);
+                    progress.setStatus("Processing " + i);
+                    logger.info("Successfully imported " + fileName);
+                } catch (Exception e) {
+                    progress.incrementFailed();
+                    progress.addError("File " + i + "failed: " + e.getMessage());
+                    logger.error("Error importing " + fileInfo.getOriginalName() + ": " + e.getMessage());
+                }
+            }
+            progress.setCompleted(true);
+            progress.setSuccess(true);
+        } catch (Exception e) {
+            ImportProgress progress = progressMap.get(jobId);
+            if(progress != null){
+                progress.setStatus("Failed " + e.getMessage());
+                progress.setCompleted(true);
+            }
+            logger.error("Import failed: ", e);
+        }
+    }
+
+    @Transactional
+    public void importWorkoutAmountData(Path filePath, String participantId, String originalFileName) throws Exception {
+        Optional<User> userOptional = userRepository.findByUsername(participantId);
+        if (userOptional.isEmpty()){
+            logger.error(String.format("User with id %s not found", participantId));
+            throw new Exception("User not found");
+        }
+
+        User user = userOptional.get();
+        // Replace by deleting the existing data
+        workoutAmountRepository.deleteByUserId(user.getId());
+
+        List<String[]> csvData = parseCSV(filePath);
+        for(int i = 1; i < csvData.size(); i++){
+            String[] row = csvData.get(i);
+
+            try {
+                saveWorkoutAmount(user, row);
+            } catch (Exception e){
+                logger.error("Error occurs when processing row " + (i+1) + "in file " + originalFileName + ": " + e.getMessage());
             }
         }
     }
@@ -308,10 +418,47 @@ public class BatchImportService {
         }
     }
 
+    private List<String[]> parseCSV(Path filePath) throws Exception {
+        List<String[]> csvData = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(filePath), "UTF-8"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+
+                for(int i = 0; i < values.length; i++) {
+                    values[i] = values[i].replaceAll("^\"|\"$", "").trim();
+                }
+
+                csvData.add(values);
+            }
+        }
+
+        return csvData;
+    }
+
     private List<String[]> parseCSV(MultipartFile file) throws Exception {
         List<String[]> csvData = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), "UTF-8"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+
+                for(int i = 0; i < values.length; i++) {
+                    values[i] = values[i].replaceAll("^\"|\"$", "").trim();
+                }
+
+                csvData.add(values);
+            }
+        }
+
+        return csvData;
+    }
+
+    private List<String[]> parseCSV(byte[] fileContent) throws Exception {
+        List<String[]> csvData = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(fileContent), "UTF-8"))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
@@ -382,3 +529,4 @@ public class BatchImportService {
         }
     }
 }
+
