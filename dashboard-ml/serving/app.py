@@ -9,8 +9,8 @@ import pickle
 
 app = Flask(__name__)
 
-CHECKPOINT = r"C:/Users/wshiy/Desktop/USDY/COMP5703/mvts_transformer-master/experiments/MyPA_fromScratch_Regression_2025-08-27_17-46-56_OEO/checkpoints/model_best.pth"     # 你的ckpt路径
-CSV_PATH   = r"C:/Users/wshiy/Desktop/USDY/COMP5703/data/CS79_1/PA_synthetic/SYNTH_000410.csv"  # 这次要预测的那份CSV
+CHECKPOINT = r"../checkpoints/model_best.pth"     # 你的ckpt路径
+# CSV_PATH   = r"dashboard-ml/SYNTH_000410.csv"  # 这次要预测的那份CSV
 
 MAX_SEQ_LEN = 222          # 训练时用的序列对齐长度
 CSV_HAS_HEADER = True     # 训练数据无表头就 False；有表头就 True
@@ -19,9 +19,9 @@ ADD_TIME_INDEX = True      # 训练时是否把 t 当作特征一起喂给模型
 PAD_VALUE = 0.0
 
 # ======= 读CSV =======
-df = pd.read_csv(CSV_PATH, header=0 if CSV_HAS_HEADER else None)
+# df = pd.read_csv(CSV_PATH, header=0 if CSV_HAS_HEADER else None)
 
-with open(r"C:/Users/wshiy/Desktop/USDY/COMP5703/mvts_transformer-master/experiments/MyPA_fromScratch_Regression_2025-08-27_17-46-56_OEO/normalization.pickle", "rb") as f:
+with open(r"../checkpoints/normalization.pickle", "rb") as f:
     norm_dict = pickle.load(f)
 
 # 2. 用里面的参数初始化 Normalizer
