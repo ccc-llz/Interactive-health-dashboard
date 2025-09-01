@@ -27,9 +27,10 @@ function ClientLayout({ children }) {
     }
 
     return (
-        <div className="fixed w-full h-full bg-gradient-to-br from-sky-50 to-blue-100 flex items-center py-2">
-            <SideBar className='max-w-[200px] my-2 ml-2' />
-            <div id='dashboard' className='w-full h-full my-2 bg-white/70 rounded-2xl backdrop-blur-xl m-2 p-2 shadow-xl/5 backdrop-saturate-200'>
+        <div className="fixed w-full h-full flex gap-4 p-4">
+            <div className='absolute -z-100 w-full h-full bg-conic from-blue-100 via-40% via-violet-50 to-blue-100 blur-2xl brightness-90 saturate-200' />
+            <SideBar className='max-w-[250px]' />
+            <div id='dashboard' className='w-full h-full'>
                 {children}
             </div>
         </div>

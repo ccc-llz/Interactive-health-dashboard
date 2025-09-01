@@ -59,7 +59,8 @@ function SideBar({ className, ...props }: { className?: string, props?: React.Re
     }
 
     return (
-        <div id='sidebar-container' className={`w-full h-full flex flex-col justify-between ${className || ''}`}>
+        <div id='sidebar-container' className={`w-full h-full relative flex flex-col justify-between ${className || ''}  rounded-xl p-2 shadow-lg shadow-blue-700/30 border-1 border-white/80 overflow-clip`}>
+            <div className='w-full h-full absolute inset-0 -z-10 bg-conic/oklab from-pink-50/80 via-45% via-violet-200/60 to-blue-50/80 backdrop-brightness-100 rounded-xl border-2 border-white/100 blur-2xl'/>
             <div id='header-area' className='flex flex-col gap-5'>
                 <a onClick={()=>{navigate('/')}}>
                     <div className='h-20 p-5 flex items-center gap-2 cursor-pointer'>
