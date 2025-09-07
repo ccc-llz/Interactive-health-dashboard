@@ -4,9 +4,12 @@ import com.cs79_1.interactive_dashboard.Entity.User;
 import com.cs79_1.interactive_dashboard.Entity.BodyComposition;
 import com.cs79_1.interactive_dashboard.Repository.BodyMetricsRepository;
 import com.cs79_1.interactive_dashboard.Repository.BodyCompositionRepository;
+import com.cs79_1.interactive_dashboard.Repository.WeeklyIntakeRepository;
 import com.cs79_1.interactive_dashboard.Repository.MentalHealthAndDailyRoutineRepository;
 import com.cs79_1.interactive_dashboard.Repository.WeightMetricsRepository;
 import com.cs79_1.interactive_dashboard.DTO.BodyCompositionSummary;
+import com.cs79_1.interactive_dashboard.DTO.FoodIntakeResultDto;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-
 @Service
 public class StaticInfoService {
     @Autowired
@@ -200,5 +202,77 @@ public class StaticInfoService {
 
         return dto;
     }
+
+
+
+
+@Service
+public class FoodIntakeService {
+
+    @Autowired
+    private WeeklyIntakeRepository weeklyIntakeRepository;
+    private static final double REC_ENERGY_PCT = 50.0;
+    private static final double REC_PROTECTIVE_PCT = 35.0;
+    private static final double REC_BODY_PCT = 15.0;
+
+    public double getFoodIntakeEnergy(long userId) {
+        return weeklyIntakeRepository.findEnergyByUserId(userId).orElse(0.0);
+    }
+
+    public double getFoodIntakeProtective(long userId) {
+        return weeklyIntakeRepository.findProtectiveByUserId(userId).orElse(0.0);
+    }
+
+    public double getFoodIntakeBodyBuilding(long userId) {
+        return weeklyIntakeRepository.findBodyBuildingByUserId(userId).orElse(0.0);
+    }
+
+    public FoodIntakeResultDto calculateFoodIntake(long userId) {
+        double energy = getFoodIntakeEnergy(userId);
+        double protective = getFoodIntakeProtective(userId);
+        double bodyBuilding = getFoodIntakeBodyBuilding(userId);
+
+        double total = energy + protective + bodyBuilding;
+
+        double recEnergy = (REC_ENERGY_PCT / 100.0) * total;
+        double recProtective = (REC_PROTECTIVE_PCT / 100.0) * total;
+        double recBody = (REC_BODY_PCT / 100.0) * total;
+
+        // % of recommendation achieved (actual / recommended * 100)
+        double pctEnergy = recEnergy > 0 ? (energy / recEnergy) * 100.0 : 0.0;
+        double pctProtective = recProtective > 0 ? (protective / recProtective) * 100.0 : 0.0;
+        double pctBody = recBody > 0 ? (bodyBuilding / recBody) * 100.0 : 0.0;
+
+        double dailyPctEnergy = total > 0 ? (energy / total) * 100.0 : 0.0;
+        double dailyPctProtective = total > 0 ? (protective / total) * 100.0 : 0.0;
+        double dailyPctBody = total > 0 ? (bodyBuilding / total) * 100.0 : 0.0;
+
+        FoodIntakeResultDto dto = new FoodIntakeResultDto();
+        dto.setEnergy(energy);
+        dto.setProtective(protective);
+        dto.setBodyBuilding(bodyBuilding);
+
+        dto.setRecEnergy(recEnergy);
+        dto.setRecProtective(recProtective);
+        dto.setRecBodyBuilding(recBody);
+
+        dto.setPctEnergy(pctEnergy);
+        dto.setPctProtective(pctProtective);
+        dto.setPctBodyBuilding(pctBody);
+
+        dto.setDailyPctEnergy(dailyPctEnergy);
+        dto.setDailyPctProtective(dailyPctProtective);
+        dto.setDailyPctBodyBuilding(dailyPctBody);
+
+        return dto;
+    }
+
+
+}
+
+
+
+
+
 
 }
