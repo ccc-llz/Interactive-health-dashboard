@@ -49,10 +49,10 @@ function SideBar({ className, ...props }: { className?: string, props?: React.Re
     if (loading)
         return (<div>Loading...</div>);
 
-    if (error)
+    if (error){
         localStorage.clear();
         navigate('/login');
-        return (<div>Error:{error}</div>);
+        return (<div>Error:{error}</div>);}
 
     // console.log(user);
 
