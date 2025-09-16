@@ -2,7 +2,6 @@ import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDi
 import { Chart } from "chart.js/auto";
 import { use, useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../service/axios";
-import { set } from "mongoose";
 import WorkoutDetails from "../../ModalPages/WorkoutDetails/WorkoutDetails";
 
 type Workout = {
