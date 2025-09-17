@@ -20,11 +20,6 @@ const sidebarData = {
             icon: ChartLine,
             url: '/chart-demo'
         },
-        {
-            title: 'BMI',
-            icon: BicepsFlexed,
-            url: '/bmi'
-        }
     ],
     navBottoms: [
         {
