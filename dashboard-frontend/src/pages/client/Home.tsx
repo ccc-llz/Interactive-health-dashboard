@@ -17,7 +17,7 @@ const Home = () => {
                 <FatMuscleWaterCard />
             </DashboardCard>
 
-            <DashboardCard id='Basic' className='row-span-2 md:col-span-2 lg:col-span-4'>
+            <DashboardCard id='Basic' className=' md:col-span-2 lg:col-span-4'>
                 <BmiCard bmi={22} waist={150} height={175} weight={70} showLabels={true}/>
             </DashboardCard>
 

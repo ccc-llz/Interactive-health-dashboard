@@ -98,7 +98,7 @@ const ArcGauge: React.FC<{
     const knobY = cy + r * Math.sin(angle);
 
     return (
-        <svg width={size} height={size / 2} viewBox={`0 0 ${size} ${size / 2}`}>
+        <svg width={size} height={size / 2.5} viewBox={`0 0 ${size} ${size / 2}`}>
             <path d={arcPath} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={strokeWidth} />
             <defs>
                 <linearGradient id="bmiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -249,10 +249,10 @@ const BmiCard: React.FC<BmiCardProps> = (props) => {
 
             {/* 上半：弧线（固定高） + 居中 BMI 数字（完全分区，不重叠） */}
             <div className=" flex flex-col items-center">
-                <div className="h-[140px] w-full flex items-center justify-center">
+                <div className="h-fit w-full flex items-center justify-center">
                     <ArcGauge value={bmiValue ?? 22} size={220} />
                 </div>
-                <div className="-mt-15 flex items-baseline gap-2">
+                <div className="-mt-10 flex items-baseline gap-2">
                     <div className="text-4xl font-bold leading-none text-gray-900">
                         {bmiValue != null ? bmiValue.toFixed(1) : "—"}
                     </div>
