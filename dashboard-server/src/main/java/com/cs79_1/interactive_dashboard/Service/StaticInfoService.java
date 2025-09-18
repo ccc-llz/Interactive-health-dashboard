@@ -4,6 +4,7 @@ import com.cs79_1.interactive_dashboard.DTO.BodyMetricsSummaryDTO;
 import com.cs79_1.interactive_dashboard.Entity.BodyMetrics;
 import com.cs79_1.interactive_dashboard.Entity.User;
 import com.cs79_1.interactive_dashboard.Entity.BodyComposition;
+import com.cs79_1.interactive_dashboard.Enum.HFZClassification;
 import com.cs79_1.interactive_dashboard.Repository.BodyMetricsRepository;
 import com.cs79_1.interactive_dashboard.Repository.BodyCompositionRepository;
 import com.cs79_1.interactive_dashboard.Repository.WeeklyIntakeRepository;
@@ -222,8 +223,9 @@ public class StaticInfoService {
         double weight = bodyMetrics.getWeight();
         double waistSize = bodyMetrics.getWaistSize();
         double bmi = bodyComposition.getBMI();
+        HFZClassification classification = bodyComposition.getHfzBMI();
 
-        BodyMetricsSummaryDTO dto = new BodyMetricsSummaryDTO(height, weight, waistSize, bmi);
+        BodyMetricsSummaryDTO dto = new BodyMetricsSummaryDTO(height, weight, waistSize, bmi, classification);
         return dto;
     }
 
