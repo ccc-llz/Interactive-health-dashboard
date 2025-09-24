@@ -111,7 +111,7 @@ const WorkoutOverview = ({ mock }: { mock?: Workout[] }) => {
     return (
         <>
             <div className='w-full h-full justify-between flex flex-col overflow-visible' onClick={onOpen}>
-                <h1 className="w-fit opacity-70 bg-green-600 rounded-lg text-white px-2 text-xl font-light font-[Outfit] flex-shrink-0">
+                <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] flex-shrink-0">
                     Activities Overview
                 </h1>
                 <WorkoutOverviewChart data={workoutData} showTooltips={true} />
