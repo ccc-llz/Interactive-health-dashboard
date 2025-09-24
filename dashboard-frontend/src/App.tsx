@@ -11,6 +11,7 @@ import Unauthorized from './pages/auth/Unauthorized'
 import { UserProvider } from './context/UserContext'
 import { useUser } from './context/UserContext'
 import { CircularProgress } from '@heroui/react'
+import Profile from './pages/client/Profile'
 
 function ClientLayout({ children }) {
     const { loading, error } = useUser();
@@ -28,7 +29,7 @@ function ClientLayout({ children }) {
     }
 
     return (
-        <div className="fixed w-full h-full flex">
+        <div className="fixed w-full h-full min-h-[800px] flex">
             <div className='absolute -z-100 w-full h-full bg-conic from-blue-100 via-40% via-violet-50 to-blue-100 blur-2xl brightness-90 saturate-200' />
             <div className='w-[250px] m-4 mr-2 flex-shrink-0'>
                 <SideBar className='w-full' />
@@ -83,6 +84,15 @@ function App() {
                         <Simulation />
                     </ClientLayout>
                 } />
+
+                <Route path="/profile" element={
+                    <ProtectedRoute requiredRole={['USER']}>
+                        <ClientLayout>
+                            <Profile />
+                        </ClientLayout>
+                    </ProtectedRoute>
+                } />
+
 
                 {/* Ops-end Routing */}
                 <Route path="/ops" element={
