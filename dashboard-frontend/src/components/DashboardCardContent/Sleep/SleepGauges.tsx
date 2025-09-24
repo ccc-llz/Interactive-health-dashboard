@@ -37,7 +37,7 @@ function mkGaugeData(valueMin: number) {
 
 const gaugeOptions: any = {
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: true,
     plugins: { legend: { display: false }, tooltip: { enabled: false } },
 };
 
@@ -81,15 +81,14 @@ export default function SleepGauges() {
     ]), [thisWeekMin, schoolMin, weekendMin]);
 
     return (
-        <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 gap-1">
             {cards.map((c) => (
-                <div key={c.title} className="relative rounded-xl p-3 bg-white/50 dark:bg-white/10 flex flex-col items-center">
-                    <div className="h-28 w-full relative flex items-center justify-center">
+                <div key={c.title} className="h-full rounded-xl px-1 py-2 bg-white/50 dark:bg-white/10 flex flex-col justify-center items-center inset-shadow-sm/10 outline-1 outline-gray-200">
+                    <div className="w-full relative flex flex-col items-center justify-center">
                         <Doughnut data={mkGaugeData(c.value)} options={gaugeOptions} />
-
-                        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
+                        <div className="flex px-1 flex-col -mt-2 items-center justify-end pb-2">
                             <div className="flex items-baseline space-x-1">
-                                <span className="text-2xl font-bold leading-tight">
+                                <span className="text-xl font-bold leading-tight">
                                     {Math.floor(c.value / 60)}h
                                 </span>
                                 <span className="text-base opacity-70">
@@ -98,8 +97,6 @@ export default function SleepGauges() {
                             </div>
                         </div>
                     </div>
-
-
                     <div className="mt-2 text-sm font-bold text-center">{c.title}</div>
                     <div className="mt-5 text-xs text-center opacity-70">
                         {Math.round(c.value)}min
