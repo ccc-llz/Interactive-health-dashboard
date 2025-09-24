@@ -3,6 +3,7 @@ import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend} from "chart.js";
 import type { ChartOptions, TooltipItem } from "chart.js";
 import { apiClient } from "../../../service/axios";
+import { background } from "storybook/internal/theming";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -14,7 +15,7 @@ export default function FatMuscleWaterCard() {
     useEffect(() => {
         (async () => {
             try {
-                const r = await apiClient.get("/static/body-composition"); // 注意：你的 baseURL 已含 /api
+                const r = await apiClient.get("/static/body-composition"); 
                 setData(r.data as Resp);
             } catch (e) {
                 setData({ fatPct: 22, musclePct: 45, waterPct: 33 });
@@ -28,8 +29,8 @@ export default function FatMuscleWaterCard() {
         datasets: [
             {
                 data: [data?.fatPct ?? 0, data?.musclePct ?? 0, data?.waterPct ?? 0],
-                backgroundColor: ["#fca5a5", "#86efac", "#93c5fd"],
-                borderWidth: 2,
+                backgroundColor: ["#ff9900", "#f42754", "#06e3eb"],
+                borderWidth: 0
             },
         ],
     };
@@ -37,8 +38,10 @@ export default function FatMuscleWaterCard() {
     const options: ChartOptions<'pie'> = {
         responsive: true,
         maintainAspectRatio: false,
+        aspectRatio:1,
         plugins: {
             legend: { position: "right",
+                display: false,
                 onClick: null },
             tooltip: {
                 callbacks: {
@@ -54,11 +57,27 @@ export default function FatMuscleWaterCard() {
     };
 
     return (
-        <div className="rounded-xl w-full h-full flex flex-col ">
-            <h2 className="text-lg font-bold mb-6 ml-6">Body Composition</h2>
-            <div className="w-[250px] h-[200px] mx-auto flex flex-col items-center justify-center gap-[10px] mb-6">
-                <Pie data={chartData} options={options} />
+        <div className="rounded-xl w-full h-full flex flex-col pb-5">
+            <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] flex-shrink-0">
+                Body Composition
+            </h1>
+            <div className="flex gap-2 w-full h-full items-center justify-between p-4 flex-1">
+                <div className=" min-w-0 h-full min-h-0 drop-shadow-lg">
+                    <Pie data={chartData} options={options} />
+                </div>
+                <div className="flex flex-col gap-2 flex-shrink-0 pr-5">
+                    {chartData.labels.map((label, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                            <div className="w-5 h-3 rounded-full border-1 border-black/20 shadow-md" style={{background: chartData.datasets[0].backgroundColor[index]}} />
+                            <div>
+                                <h1 className="text-md font-semibold">{label}</h1>
+                                <h2 className="text-sm">{chartData.datasets[0].data[index].toFixed(2)}%</h2>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
+            
         </div>
     );
 }
