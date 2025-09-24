@@ -13,3 +13,11 @@
   font-display: swap;
   src: url("assets/fonts/Outfit-VariableFont_wght.ttf") format("truetype");
 }
+
+@font-face {
+  font-family: Nunito;
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+  src: url("assets/fonts/Nunito-VariableFont_wght.ttf") format("truetype");
+}
