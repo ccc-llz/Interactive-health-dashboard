@@ -13,5 +13,10 @@ public class FlaskAPIService {
     @Value("${ML_PORT:5485}")
     private String mlPort;
 
-    private static final String API_URL = "localhost";
+    private final String API_URL = String.format("localhost:%s", mlPort);
+
+    public Object getHeatmap(long userId) {
+        String url = API_URL + "?user_id=" + userId;
+        return restTemplate.getForObject(url, Object.class);
+    }
 }
