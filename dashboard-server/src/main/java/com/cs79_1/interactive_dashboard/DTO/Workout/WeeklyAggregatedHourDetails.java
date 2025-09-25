@@ -42,4 +42,20 @@ public class WeeklyAggregatedHourDetails {
     public int getCount() {
         return count;
     }
+
+    public List<Integer> getMVPA() {
+        return MVPA;
+    }
+
+    public List<Integer> getLight() {
+        return Light;
+    }
+
+    public List<Long> getIds() {
+        return ids;
+    }
+
+    public List<Integer> getDaysOfWeek() {
+        return daysOfWeek;
+    }
 }
