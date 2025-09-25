@@ -10,10 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class WorkoutAmountService {
@@ -142,9 +139,31 @@ public class WorkoutAmountService {
         return weeklyAggregatedHourDetailsList;
     }
 
-//    public SimulatedActivityDTO getSimulatedActivity(Long userId) {
-//        getAveragedWorkoutDetail(userId);
-//    }
+    public SimulatedActivityDTO getSimulatedActivity(Long userId) {
+        List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetails = getAveragedWorkoutDetail(userId);
+
+        SimulatedActivityDTO simulatedActivityDTO = new SimulatedActivityDTO();
+        for(int i = 0; i < 24; i++) {
+            List<Integer> mvpa = weeklyAggregatedHourDetails.get(i).getMVPA();
+            List<Integer> light = weeklyAggregatedHourDetails.get(i).getLight();
+
+            int mvpaSum = 0;
+            int lightSum = 0;
+            for(int value : mvpa) {
+                mvpaSum += value;
+            }
+
+            for(int value : light) {
+                lightSum += value;
+            }
+
+            simulatedActivityDTO.addMVPA(mvpaSum / weeklyAggregatedHourDetails.get(i).getCount());
+            simulatedActivityDTO.addLight(lightSum / weeklyAggregatedHourDetails.get(i).getCount());
+            simulatedActivityDTO.addDescription(weeklyAggregatedHourDetails.get(i).getDescription());
+        }
+
+        return simulatedActivityDTO;
+    }
 
     public WorkoutHeatmapDTO getHeatmapFiltered(Long userId, boolean isWeekend) {
         List<WorkoutAmount> workoutAmounts = getWorkoutAmountByUserIdAsc(userId);
