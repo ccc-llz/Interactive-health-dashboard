@@ -1,84 +1,117 @@
 import { useEffect, useRef, useState } from "react";
-import { type DailyDetail } from "./WorkoutDetails";
-import { Chart } from "chart.js/auto";
+import SimulateActivityChart from "./SimulateActivityChart";
+import { type ReviewData } from "./HealthReview";
+import HealthReview from "./HealthReview";
+import { Button, Spinner } from "@heroui/react";
+import { apiClient } from "../../service/axios";
 
+type ActivityData = {
+    description: string[];
+    mvpa: number[];
+    light: number[];
+}
 
-
-const SimulateActivity = ({data, showTooltips} : {data: DailyDetail[], showTooltips? : boolean}) => {
-    const chartRef = useRef<HTMLCanvasElement>(null);
-    const chartInstance = useRef<Chart | null>(null);
+const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, isWeekend? : boolean }) => {
+    const [resetTrigger, setResetTrigger] = useState(0);
+    const [isDataReady, setIsDataReady] = useState(false);
+    const [chartData, setChartData] = useState<ActivityData>();
+    const [predictionData, setPredictionData] = useState<ReviewData>();
+    const [canSimulate, setCanSimulate] = useState(false);
+    const [isSimulating, setIsSimulating] = useState(false);
 
     useEffect(() => {
-        if (!chartRef.current) return;
-
-        if (chartInstance.current) {
-            chartInstance.current.destroy();
+        const fetchData = async () => {
+            try {
+                const chartResponse = await apiClient.get('/simulation/chart', {
+                    params: {
+                        isWeekend: isWeekend ?? false
+                    }
+                });
+                const groundtruthResponse = await apiClient.get('/simulation/groundtruth');
+                setChartData(chartResponse.data);
+                setPredictionData({groundTruth: groundtruthResponse.data});
+                setIsDataReady(true);
+            } catch (error) {
+                console.error(error);
+            }
         }
 
-        const ctx = chartRef.current.getContext('2d');
-        if (!ctx) return;
+        if (MockData) {
+            setChartData(MockData);
+            setPredictionData({ groundTruth: "NI" });
+            setIsDataReady(true);
+        } else {
+            fetchData();
+        }
+    }, [MockData])
 
-        chartInstance.current = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map(item => item.timeSegmentStarting),
-                datasets: [
-                    {
-                        label: 'MVPA',
-                        data: data.map(item => item.mvpa),
-                        borderColor: 'rgba(247, 128, 37, 1)',
-                        backgroundColor: 'rgba(250, 160, 5, 0.6)',
-                        fill: true,
-                        tension: 0.4,
-                    },
-                    {
-                        label: 'Light Activity',
-                        data: data.map(item => item.light),
-                        borderColor: 'rgba(152, 214, 19, 1)',
-                        backgroundColor: 'rgba(217, 247, 131, 0.6)',
-                        fill: true,
-                        tension: 0.4,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: false,
-                        text: 'Workout Overview',
-                    },
-                    tooltip: {
-                        enabled: showTooltips ? showTooltips : false
-                    },
-                    dragData: false
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                    }
+    const submitSimulation = () => {
+        if (MockData) {
+            setPredictionData({
+                groundTruth: "NI",
+                prediction: {
+                    newClassification: "HFZ",
+                    possibility: 80
                 }
-            }
-        });
+            })
+        }
+        setIsSimulating(true);
+    }
 
-        return () => {
-            if (chartInstance.current) {
-                chartInstance.current.destroy();
-            }
-        };
-    }, [data]);
+    const resetSimulation = () => {
+        if (MockData) {
+            setChartData(MockData);
+            setPredictionData({ groundTruth: "NI" });
+        }
+        setResetTrigger(prev => prev + 1);
+        setIsSimulating(false);
+        setCanSimulate(false);
+    }
+
+    const onDragEnd = (index, value) => {
+        setCanSimulate(true);
+    }
+
+    if (!isDataReady) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-5">
+                <Spinner />
+                <h1 className="text-lg">Loading...</h1>
+            </div>
+        )
+    }
 
     return (
-        <div className="w-full h-full relative min-h-100">
-            {
-                data.length > 0 ? (<canvas ref={chartRef} ></canvas>) : (<></>)
-            }
+        <div className="w-full h-full flex flex-col gap-2 p-5">
+            <div className="w-fit h-fit flex flex-col">
+                <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] flex-shrink-0">
+                    Acitivity Simulation
+                </h1>
+                <h2 className="text-sm px-1 font-serif">
+                    Try dragging on the chart to simulate changes on your activities pattern.
+                </h2>
+            </div>
+            <div className="w-full h-full flex gap-5 items-center justify-center">
+                <div id="chart" className="w-full h-full">
+                    <SimulateActivityChart data={chartData!} onDragEnd={onDragEnd} resetTrigger={resetTrigger} />
+                </div>
+                <div id="panel" className="h-fit  p-5 flex flex-col items-center gap-5 select-none">
+                    <div className="flex gap-2">
+                        <div className={`w-25 h-10 transition-all flex flex-col items-center justify-center rounded-full bg-lime-300 p-1 border-3 border-white/50 text-lime-700 ${(canSimulate && !isSimulating) ? ' hover:border-2 hover:shadow-md active:border-2 active:border-lime-400/20 active:inset-shadow-sm/40 active:shadow-none active:text-shadow-lime-800/20 active:text-shadow-xs' : 'cursor-not-allowed bg-lime-400/20'}`}
+                            onClick={submitSimulation}>
+                            Simulate
+                        </div>
+                        <div className="w-25 h-10 transition-all flex flex-col items-center justify-center rounded-full bg-red-300 p-1 border-3 border-white/50 text-red-700 hover:border-2 hover:shadow-md active:border-2 active:border-red-400/20 active:inset-shadow-sm/40 active:shadow-none active:text-shadow-red-800/20 active:text-shadow-xs"
+                            onClick={resetSimulation}>
+                            <h1>Reset</h1>
+                        </div>
+                    </div>
+                    <HealthReview data={predictionData} />
+                </div>
+            </div>
         </div>
-    );
+    )
 }
 
 export default SimulateActivity;
+export type { ActivityData }
