@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import HeatmapChart from "../../components/DashboardCardContent/HealthStatusHeatmap/HealthStatus";
+import SimulateActivity from "../../components/Simulation/SimulateActivity";
 
 const SimulationView = () => {
     const [group, setGroup] = useState<"weekdays" | "weekends">("weekdays");
 
     return (
-        <div className="w-full h-full flex flex-col gap-4 p-4 pl-2">
+        <div className="w-full h-full flex flex-col gap-4 p-4 pl-2 max-w-[calc(100vw)]">
             <div className="w-full flex justify-end pr-6 flex-shrink-0">
                 <div className="flex gap-2 mt-2">
                     <button
@@ -31,9 +32,7 @@ const SimulationView = () => {
 
             <div className="grid grid-rows-13 w-full h-full gap-5">
                 <div className="w-full row-span-8 bg-white/60 rounded-2xl shadow-xl/40 shadow-blue-500 outline-1 outline-white/100">
-                    <div className="w-full h-full flex items-center justify-center">
-                        <p className="text-gray-500">Placeholder for actitvity linechart</p>
-                    </div>
+                    <SimulateActivity />
                 </div>
 
 
