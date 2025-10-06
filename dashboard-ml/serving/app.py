@@ -10,6 +10,7 @@ from data import Normalizer
 import pickle
 import os
 from sqlalchemy import create_engine, text
+from threading import Lock
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
@@ -76,6 +77,20 @@ def load_attrs_from_db(sid: int, table_name: str = "users"):
     is_female = 1.0 if int(df.loc[0, "sex"]) == 2 else 0.0
     return age, is_female
 
+
+ATTN_LOCK = Lock()
+def _reset_collector():
+    try:
+        collector.attn_per_layer.clear()
+        collector.hidden_per_layer.clear()
+    except Exception:
+        pass
+def _zero_out_model_grads():
+    try:
+        model.zero_grad(set_to_none=True)
+    except Exception:
+        pass
+
 @app.route("/api/predict", methods=["GET"])
 def predict():
 
@@ -125,82 +140,91 @@ def predict():
 
     # ====== forward ======
     model.eval()
-    logits = model(x, padding_masks=padding_mask, static_features=s_static)
+    with torch.no_grad(): 
+        logits = model(x, padding_masks=padding_mask, static_features=s_static)
     probs = torch.softmax(logits, dim=1).detach().cpu().numpy().flatten().tolist()
 
-    # ====== backward for AttCAT ======
-    target = logits.gather(1, logits.argmax(1, keepdim=True)).sum()
-    model.zero_grad(set_to_none=True)
-    target.backward()
+    with ATTN_LOCK:
+        _reset_collector()                       # 反传前清空上次残留
+        _zero_out_model_grads()                  # 确保没有历史梯度
 
-    attns  = [d['weights'] for d in collector.attn_per_layer]
-    hiddens = [rec['output'] for rec in collector.hidden_per_layer]
+        with torch.enable_grad(): 
+            logits = model(x.requires_grad_(True), padding_masks=padding_mask, static_features=s_static)
+            # ====== backward for AttCAT ======
+            target = logits.gather(1, logits.argmax(1, keepdim=True)).sum()
+            model.zero_grad(set_to_none=True)
+            target.backward()
 
-    cats = []
-    for h in hiddens:
-        g = h.grad
-        if h.shape[0] != x.shape[0]:  # [T,B,D] → [B,T,D]
-            h = h.permute(1,0,2).contiguous()
-            g = g.permute(1,0,2).contiguous()
-        cats.append(h * g)   # [B,T,D]
+            attns  = [d['weights'] for d in collector.attn_per_layer]
+            hiddens = [rec['output'] for rec in collector.hidden_per_layer]
 
-    att_scores = []
-    for cat, attn in zip(cats, attns):
-        a = attn.mean(1).mean(1).unsqueeze(-1)  # [B,T,1]
-        score = (cat * a).squeeze(0).detach().cpu().numpy()  # [T,D]
-        att_scores.append(score)
+            cats = []
+            for h in hiddens:
+                g = h.grad
+                if h.shape[0] != x.shape[0]:  # [T,B,D] → [B,T,D]
+                    h = h.permute(1,0,2).contiguous()
+                    g = g.permute(1,0,2).contiguous()
+                cats.append(h * g)   # [B,T,D]
 
-    impact = np.sum(att_scores, axis=0)  # [T,D]，D=3
-    vmax = np.percentile(np.abs(impact), 99)
-    if vmax == 0: vmax = 1e-6
-    impact = np.clip(impact, -vmax, vmax) / vmax
-    # ====== 只保留有效长度（去掉 pad）======
-    impact = impact[:valid_len, :]               # [valid_len, 3]
-    timeline_valid = timeline[:valid_len]
-    MVPA_IDX = 0
-    LIGHT_IDX = 2
-    mvpa_vals  = df["f1"].iloc[:valid_len].tolist()
-    light_vals = df["f3"].iloc[:valid_len].tolist()
-    BIN_EDGES = [(0,600), (600,1200), (1200,1800), (1800,2400), (2400,3000), (3000,3600)]
-    BIN_LABELS = [f"{lo}-{hi}" for (lo,hi) in BIN_EDGES]
+            att_scores = []
+            for cat, attn in zip(cats, attns):
+                a = attn.mean(1).mean(1).unsqueeze(-1)  # [B,T,1]
+                score = (cat * a).squeeze(0).detach().cpu().numpy()  # [T,D]
+                att_scores.append(score)
 
-    def _num(x):
-        try:
-            return None if (x is None or pd.isna(x)) else float(x)
-        except Exception:
-            return None
-    
-    def sec_to_bin_label(v: int):
-        if v is None:
-            return None
-        try:
-            x = float(v)
-        except Exception:
-            return None
-        for (lo, hi), lab in zip(BIN_EDGES, BIN_LABELS):
-            if lo <= x < hi:
-                return lab
-        return BIN_LABELS[-1]
+            impact = np.sum(att_scores, axis=0)  # [T,D]，D=3
+            vmax = np.percentile(np.abs(impact), 99)
+            if vmax == 0: vmax = 1e-6
+            impact = np.clip(impact, -vmax, vmax) / vmax
+            # ====== 只保留有效长度（去掉 pad）======
+            impact = impact[:valid_len, :]               # [valid_len, 3]
+            timeline_valid = timeline[:valid_len]
+            MVPA_IDX = 0
+            LIGHT_IDX = 2
+            mvpa_vals  = df["f1"].iloc[:valid_len].tolist()
+            light_vals = df["f3"].iloc[:valid_len].tolist()
+            BIN_EDGES = [(0,600), (600,1200), (1200,1800), (1800,2400), (2400,3000), (3000,3600)]
+            BIN_LABELS = [f"{lo}-{hi}" for (lo,hi) in BIN_EDGES]
 
-    # def _to_iso(ts: pd.Timestamp):
-    #     if pd.isna(ts):
-    #         return None
-    #     return ts.isoformat()  # "YYYY-MM-DDTHH:MM:SS"
+            def _num(x):
+                try:
+                    return None if (x is None or pd.isna(x)) else float(x)
+                except Exception:
+                    return None
+            
+            def sec_to_bin_label(v: int):
+                if v is None:
+                    return None
+                try:
+                    x = float(v)
+                except Exception:
+                    return None
+                for (lo, hi), lab in zip(BIN_EDGES, BIN_LABELS):
+                    if lo <= x < hi:
+                        return lab
+                return BIN_LABELS[-1]
 
-    hours    = timeline_valid.dt.hour.fillna(-1).astype(int).tolist()     
-    weekdays = timeline_valid.dt.weekday.fillna(-1).astype(int).tolist()  
-    # ts_iso   = [ _to_iso(t) for t in timeline_valid ]
+            # def _to_iso(ts: pd.Timestamp):
+            #     if pd.isna(ts):
+            #         return None
+            #     return ts.isoformat()  # "YYYY-MM-DDTHH:MM:SS"
 
-    mvpa_impact = [
-        # {"ts": ts_iso[i],
-        {"value": _num(mvpa_vals[i]), "impact": float(impact[i, MVPA_IDX]), "hour": int(hours[i]), "weekday": int(weekdays[i]), "bin": sec_to_bin_label(mvpa_vals[i])}
-        for i in range(valid_len)
-    ]
-    light_impact = [
-        # {"ts": ts_iso[i], 
-        {"value": _num(light_vals[i]), "impact": float(impact[i, LIGHT_IDX]),"hour": int(hours[i]), "weekday": int(weekdays[i]), "bin": sec_to_bin_label(light_vals[i])}
-        for i in range(valid_len)
-    ]
+            hours    = timeline_valid.dt.hour.fillna(-1).astype(int).tolist()     
+            weekdays = timeline_valid.dt.weekday.fillna(-1).astype(int).tolist()  
+            # ts_iso   = [ _to_iso(t) for t in timeline_valid ]
+
+            mvpa_impact = [
+                # {"ts": ts_iso[i],
+                {"value": _num(mvpa_vals[i]), "impact": float(impact[i, MVPA_IDX]), "hour": int(hours[i]), "weekday": int(weekdays[i]), "bin": sec_to_bin_label(mvpa_vals[i])}
+                for i in range(valid_len)
+            ]
+            light_impact = [
+                # {"ts": ts_iso[i], 
+                {"value": _num(light_vals[i]), "impact": float(impact[i, LIGHT_IDX]),"hour": int(hours[i]), "weekday": int(weekdays[i]), "bin": sec_to_bin_label(light_vals[i])}
+                for i in range(valid_len)
+            ]
+    _zero_out_model_grads()
+    _reset_collector()
 
     return jsonify({
         "sid": sid,
@@ -302,14 +326,14 @@ def simulate_predict():
 
     # ===== 推理（仅概率）=====
     model.eval()
-    with torch.no_grad():
+    with torch.inference_mode():
         logits = model(x, padding_masks=padding_mask, static_features=s_static)
         probs_t = torch.softmax(logits, dim=1)           # [1, C]
         top_prob, top_idx = probs_t.squeeze(0).max(dim=0)
         top_label = CLASS_NAMES[int(top_idx)]
         top_prob  = float(top_prob.cpu().item())
 
-    top_prob = round(top_prob, 6)
+    top_prob = round(top_prob*100, 2)
 
     return jsonify({
         "classification": top_label,
