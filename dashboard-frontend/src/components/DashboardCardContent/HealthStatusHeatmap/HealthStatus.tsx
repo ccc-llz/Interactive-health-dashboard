@@ -26,8 +26,8 @@ type ImpactItem = {
   hour: number;
   weekday: number;
   bin: string;
-  value?: number;  
-  impact?: number; 
+  value?: number;
+  impact?: number;
 };
 
 type ImpactResponse = {
@@ -58,6 +58,9 @@ function convertHeatmapData(
 
 const cellBg = (ctx: any) => {
   const v = ctx.raw?.score ?? 0;
+  if (v === 0) {
+    return `rgba(0, 0, 0, 0)`; 
+  }
   if (v <= 0) {
     const t = v + 1;
     const r = Math.round(255 * t);
@@ -110,14 +113,14 @@ function toHourBinAggregates(items: ImpactItem[]) {
   return { valueMap, scoreMap };
 }
 
-export default function HeatmapChart({ group }: { group: "weekdays" | "weekends" }) {
+export default function HeatmapChart({ group, activityType }: { group: "weekdays" | "weekends"; activityType?: "mvpa" | "light" }) {
   const [payload, setPayload] = useState<HeatmapPayload | null>(null);
   const [loading, setLoading] = useState(false);
-  const [type, setType] = useState<"mvpa" | "light">("mvpa");
+
 
   useEffect(() => {
-    // const sid = '3'; // TODO: 换成当前用户 id
-    // if (!sid) return;
+    const sid = '2118'; // TODO: 换成当前用户 id
+    if (!sid) return;
 
     setLoading(true);
     userAPI
@@ -145,16 +148,16 @@ export default function HeatmapChart({ group }: { group: "weekdays" | "weekends"
 
   const chartData = useMemo(() => {
     if (!payload) return [];
-    const valueMap = type === "mvpa" ? payload.mvpaValueHeatmap : payload.lightValueHeatmap;
-    const scoreMap = type === "mvpa" ? payload.mvpaScoreHeatmap : payload.lightScoreHeatmap;
+    const valueMap = activityType === "mvpa" ? payload.mvpaValueHeatmap : payload.lightValueHeatmap;
+    const scoreMap = activityType === "mvpa" ? payload.mvpaScoreHeatmap : payload.lightScoreHeatmap;
     return convertHeatmapData(valueMap, scoreMap);
-  }, [payload, type]);
+  }, [payload, activityType]);
 
   const data = useMemo(
     () => ({
       datasets: [
         {
-          label: `${group} ${type.toUpperCase()} Heatmap`,
+          label: `${group} ${activityType.toUpperCase()} Heatmap`,
           data: chartData,
           backgroundColor: cellBg,
           borderWidth: 1,
@@ -163,7 +166,7 @@ export default function HeatmapChart({ group }: { group: "weekdays" | "weekends"
         },
       ],
     }),
-    [chartData, type, group]
+    [chartData, activityType, group]
   );
 
   const options = useMemo(
@@ -181,11 +184,23 @@ export default function HeatmapChart({ group }: { group: "weekdays" | "weekends"
           },
           title: { display: true, text: "Hour of Day" },
           offset: true,
+          grid: {
+            display: false,
+          },
+          border: {
+            display: false,
+          },
         },
         y: {
           type: "category" as const,
           labels: BIN_ORDER,
           title: { display: true, text: "Seconds (bins of 600s)" },
+          grid: {
+            display: false,
+          },
+          border: {
+            display: false,
+          },
         },
       },
       plugins: {
@@ -206,19 +221,14 @@ export default function HeatmapChart({ group }: { group: "weekdays" | "weekends"
 
   return (
     <div className="w-full h-full flex flex-col gap-3">
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <button
-          className={`px-3 py-1 rounded-lg text-sm ${type === "mvpa" ? "bg-gradient-to-r from-violet-300 to-blue-300 text-white" : "bg-gray-200"}`}
-          onClick={() => setType("mvpa")}
-        >
-          MVPA
-        </button>
-        <button
-          className={`px-3 py-1 rounded-lg text-sm ${type === "light" ? "bg-gradient-to-r from-violet-300 to-blue-300 text-white" : "bg-gray-200"}`}
-          onClick={() => setType("light")}
-        >
-          Light
-        </button>
+        <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] flex-shrink-0">
+                    Heatmap
+        </h1>
+      <div className="flex items-center gap-2 flex-shrink-0 flex-col">
+
+         <h2 className="text-sm px-1 font-serif">
+          {activityType === "mvpa" ? "MVPA" : "Light"}
+        </h2>
 
         {loading && <span className="text-sm text-gray-500">Loading…</span>}
       </div>{loading && <span className="text-sm text-gray-500">Loading…</span>}

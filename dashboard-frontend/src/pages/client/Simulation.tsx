@@ -38,8 +38,8 @@ const SimulationView = () => {
 
                 <div className="bg-white/60 flex-shrink-0 rounded-2xl shadow-md/20 shadow-blue-500 outline-1 outline-white/100 w-full flex items-center justify-center p-4">
                     <div className="grid grid-cols-2 min-h-0 w-full gap-2">
-                        <HeatmapChart group={group} />
-                        <HeatmapChart group={group} />
+                        <HeatmapChart group={group} activityType="mvpa" />
+                        <HeatmapChart group={group} activityType="light"/>
                     </div>
                 </div>
             </div>

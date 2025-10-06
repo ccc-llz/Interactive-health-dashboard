@@ -114,7 +114,7 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
         <div className="w-full h-full flex flex-col gap-2 p-5">
             <div className="w-fit h-fit flex flex-shrink-0 flex-col">
                 <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] flex-shrink-0">
-                    Acitivity Simulation
+                    Activity Simulation
                 </h1>
                 <h2 className="text-sm px-1 font-serif">
                     Try dragging on the chart to simulate changes on your activities pattern.
