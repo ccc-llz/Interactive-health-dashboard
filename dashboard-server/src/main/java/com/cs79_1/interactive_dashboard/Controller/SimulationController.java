@@ -1,6 +1,9 @@
 package com.cs79_1.interactive_dashboard.Controller;
 
-import com.cs79_1.interactive_dashboard.DTO.Simulation.SimulatedActivityDTO;
+import com.cs79_1.interactive_dashboard.DTO.Simulation.AlteredActivityPredictionRequest;
+import com.cs79_1.interactive_dashboard.DTO.Simulation.PredictionRequestDTO;
+import com.cs79_1.interactive_dashboard.DTO.Simulation.PredictionResultDTO;
+import com.cs79_1.interactive_dashboard.DTO.Simulation.StructuredActivityDTO;
 import com.cs79_1.interactive_dashboard.DTO.Workout.WeeklyAggregatedHourDetails;
 import com.cs79_1.interactive_dashboard.Security.SecurityUtils;
 import com.cs79_1.interactive_dashboard.Service.FlaskAPIService;
@@ -10,11 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -46,12 +45,12 @@ public class SimulationController {
     }
 
     @GetMapping("/chart")
-    public ResponseEntity<SimulatedActivityDTO> getChart(@RequestParam(defaultValue = "false") boolean isWeekend) {
+    public ResponseEntity<StructuredActivityDTO> getChart(@RequestParam(defaultValue = "false") boolean isWeekend) {
         long userId = SecurityUtils.getCurrentUserId();
         try {
-            List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetails = workoutAmountService.resetOrganisedWorkoutDetailInRedis(userId);
-            SimulatedActivityDTO simulatedActivityDTO = workoutAmountService.getSimulatedActivity(weeklyAggregatedHourDetails, isWeekend);
-            return ResponseEntity.ok(simulatedActivityDTO);
+            List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetails = workoutAmountService.getStructuredWorkoutDetailFromRedis(userId);
+            StructuredActivityDTO structuredActivityDTO = workoutAmountService.getStructuredActivityData(weeklyAggregatedHourDetails, isWeekend);
+            return ResponseEntity.ok(structuredActivityDTO);
         }  catch (Exception e) {
             logger.error("Error fetching simulation chart data, {}\n{}", e.getMessage(), e.getStackTrace());
             return ResponseEntity.internalServerError().build();
@@ -69,4 +68,26 @@ public class SimulationController {
            return ResponseEntity.internalServerError().build();
         }
     }
+
+    @PostMapping("/predict")
+    public ResponseEntity<PredictionResultDTO> predict(@RequestBody PredictionRequestDTO request) {
+        long userId = SecurityUtils.getCurrentUserId();
+        try {
+            AlteredActivityPredictionRequest predictionRequest = new AlteredActivityPredictionRequest(userId, !request.isWeekend());
+            StructuredActivityDTO structuredActivityDTO = workoutAmountService.getStructuredActivityData(userId, request.isWeekend());
+            for(int i = 0; i < 24; i++) {
+                double mvpaScale = (double)(request.getMvpa()[i] + structuredActivityDTO.getMVPA().get(i)) / structuredActivityDTO.getMVPA().get(i);
+                double lightScale = (double)(request.getLight()[i] + structuredActivityDTO.getLight().get(i)) / structuredActivityDTO.getLight().get(i);
+                predictionRequest.addMVPA(i, mvpaScale);
+                predictionRequest.addLight(i, lightScale);
+            }
+
+            Object result = flaskAPIService.sendPredictionRequest(predictionRequest);
+            return ResponseEntity.ok((PredictionResultDTO) result);
+        } catch (Exception e) {
+            logger.error("Error fetching simulation chart data for user {}", userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 }

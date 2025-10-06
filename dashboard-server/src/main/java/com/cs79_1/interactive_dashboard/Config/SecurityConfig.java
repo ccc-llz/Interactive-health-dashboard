@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy((SessionCreationPolicy.STATELESS)))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/model/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/localbackend/**").permitAll()
                         .requestMatchers("/api/ops/**").hasAnyRole("ADMIN", "SUPERADMIN")

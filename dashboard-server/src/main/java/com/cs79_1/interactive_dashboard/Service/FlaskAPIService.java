@@ -1,10 +1,13 @@
 package com.cs79_1.interactive_dashboard.Service;
 
+import com.cs79_1.interactive_dashboard.DTO.Simulation.AlteredActivityPredictionRequest;
+import com.cs79_1.interactive_dashboard.DTO.Simulation.PredictionResultDTO;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -31,5 +34,10 @@ public class FlaskAPIService {
 
         String url = API_URL + "?sid=" + userId;
         return restTemplate.getForObject(url, Object.class);
+    }
+
+    public ResponseEntity<Object> sendPredictionRequest(AlteredActivityPredictionRequest request) {
+        String url = API_URL;
+        return restTemplate.postForEntity(url, request, Object.class);
     }
 }
