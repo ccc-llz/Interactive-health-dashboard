@@ -11,7 +11,7 @@ type ActivityData = {
     light: number[];
 }
 
-const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, isWeekend? : boolean }) => {
+const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, isWeekend?: boolean }) => {
     const [resetTrigger, setResetTrigger] = useState(0);
     const [isDataReady, setIsDataReady] = useState(false);
     const [chartData, setChartData] = useState<ActivityData>();
@@ -19,23 +19,23 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
     const [canSimulate, setCanSimulate] = useState(false);
     const [isSimulating, setIsSimulating] = useState(false);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const chartResponse = await apiClient.get('/simulation/chart', {
-                    params: {
-                        isWeekend: isWeekend ?? false
-                    }
-                });
-                const groundtruthResponse = await apiClient.get('/simulation/groundtruth');
-                setChartData(chartResponse.data);
-                setPredictionData({groundTruth: groundtruthResponse.data});
-                setIsDataReady(true);
-            } catch (error) {
-                console.error(error);
-            }
+    const fetchData = async () => {
+        try {
+            const chartResponse = await apiClient.get('/simulation/chart', {
+                params: {
+                    isWeekend: isWeekend ?? false
+                }
+            });
+            const groundtruthResponse = await apiClient.get('/simulation/groundtruth');
+            setChartData(chartResponse.data);
+            setPredictionData({ groundTruth: groundtruthResponse.data });
+            setIsDataReady(true);
+        } catch (error) {
+            console.error(error);
         }
+    }
 
+    useEffect(() => {
         if (MockData) {
             setChartData(MockData);
             setPredictionData({ groundTruth: "NI" });
@@ -43,33 +43,62 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
         } else {
             fetchData();
         }
-    }, [MockData])
+    }, [MockData, isWeekend])
 
-    const submitSimulation = () => {
+    const submitSimulation = async () => {
         if (MockData) {
+            setIsSimulating(true);
             setPredictionData({
                 groundTruth: "NI",
                 prediction: {
                     newClassification: "HFZ",
                     possibility: 80
                 }
-            })
+            });
+        } else {
+            if (!chartData) return;
+            try {
+                setIsSimulating(true);
+                const response = await apiClient.post("/simulation/predict", {
+                    isWeekend: isWeekend ?? false,
+                    mvpa: chartData.mvpa,
+                    light: chartData.light
+                });
+                setPredictionData(prev => {
+                    return {
+                        ...prev!,
+                        prediction: {
+                            newClassification: response.data.classification,
+                            possibility: response.data.probability
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+            }
         }
-        setIsSimulating(true);
+
+        setIsSimulating(false);
     }
 
     const resetSimulation = () => {
         if (MockData) {
             setChartData(MockData);
             setPredictionData({ groundTruth: "NI" });
+        } else {
+            setIsDataReady(false);
+            fetchData();
         }
         setResetTrigger(prev => prev + 1);
         setIsSimulating(false);
         setCanSimulate(false);
     }
 
-    const onDragEnd = (index, value) => {
-        setCanSimulate(true);
+    const onDragEnd = (datasetIndex: number, index: number, value: number) => {
+        if (!chartData) return;
+        const dataset = datasetIndex == 0 ? 'mvpa' : 'light';
+        if (chartData[dataset][index] !== value) setCanSimulate(true);
+        chartData[dataset][index] = value;
     }
 
     if (!isDataReady) {
@@ -83,7 +112,7 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
 
     return (
         <div className="w-full h-full flex flex-col gap-2 p-5">
-            <div className="w-fit h-fit flex flex-col">
+            <div className="w-fit h-fit flex flex-shrink-0 flex-col">
                 <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] flex-shrink-0">
                     Acitivity Simulation
                 </h1>
@@ -91,11 +120,11 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
                     Try dragging on the chart to simulate changes on your activities pattern.
                 </h2>
             </div>
-            <div className="w-full h-full flex gap-5 items-center justify-center">
+            <div className="w-full flex-1 flex gap-5 items-center justify-center">
                 <div id="chart" className="w-full h-full">
-                    <SimulateActivityChart data={chartData!} onDragEnd={onDragEnd} resetTrigger={resetTrigger} />
+                    <SimulateActivityChart data={chartData!} DragEndCallback={onDragEnd} resetTrigger={resetTrigger} />
                 </div>
-                <div id="panel" className="h-fit  p-5 flex flex-col items-center gap-5 select-none">
+                <div id="panel" className="flex-shrink-0 p-5 flex flex-col items-center gap-5 select-none">
                     <div className="flex gap-2">
                         <div className={`w-25 h-10 transition-all flex flex-col items-center justify-center rounded-full bg-lime-300 p-1 border-3 border-white/50 text-lime-700 ${(canSimulate && !isSimulating) ? ' hover:border-2 hover:shadow-md active:border-2 active:border-lime-400/20 active:inset-shadow-sm/40 active:shadow-none active:text-shadow-lime-800/20 active:text-shadow-xs' : 'cursor-not-allowed bg-lime-400/20'}`}
                             onClick={submitSimulation}>

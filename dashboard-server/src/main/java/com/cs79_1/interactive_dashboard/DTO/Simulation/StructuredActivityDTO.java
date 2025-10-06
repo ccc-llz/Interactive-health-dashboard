@@ -3,12 +3,12 @@ package com.cs79_1.interactive_dashboard.DTO.Simulation;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SimulatedActivityDTO {
+public class StructuredActivityDTO {
     List<Integer> MVPA;
     List<Integer> Light;
     List<String> description;
 
-    public SimulatedActivityDTO() {
+    public StructuredActivityDTO() {
         MVPA = new ArrayList<>();
         Light = new ArrayList<>();
         description = new ArrayList<>();

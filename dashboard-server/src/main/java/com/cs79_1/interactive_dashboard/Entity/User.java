@@ -1,6 +1,7 @@
 package com.cs79_1.interactive_dashboard.Entity;
 
 import com.cs79_1.interactive_dashboard.Enum.Role;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.List;
 

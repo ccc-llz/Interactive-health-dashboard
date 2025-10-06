@@ -5,6 +5,9 @@ public class HourlyDailyWorkoutData {
     int mvpa;
     int light;
 
+    public HourlyDailyWorkoutData() {
+    }
+
     public HourlyDailyWorkoutData(String timeSegmentStarting, int mvpa, int light) {
         this.timeSegmentStarting = timeSegmentStarting;
         this.light = light;

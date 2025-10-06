@@ -1,6 +1,6 @@
 package com.cs79_1.interactive_dashboard.Service;
 
-import com.cs79_1.interactive_dashboard.DTO.Simulation.SimulatedActivityDTO;
+import com.cs79_1.interactive_dashboard.DTO.Simulation.StructuredActivityDTO;
 import com.cs79_1.interactive_dashboard.DTO.Workout.*;
 import com.cs79_1.interactive_dashboard.Entity.WorkoutAmount;
 import com.cs79_1.interactive_dashboard.Repository.WorkoutAmountRepository;
@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class WorkoutAmountService {
@@ -29,7 +30,7 @@ public class WorkoutAmountService {
     }
 
     private Map<DayOfWeek, Map<Integer, DailyWorkoutData>> getAveragedTimeSegmentedData(Long userId) {
-        List<WorkoutAmount> workoutAmounts = getWorkoutAmountByUserIdAsc(userId);
+        List<WorkoutAmount> workoutAmounts = getWorkoutAmountRawData(userId);
         Map<DayOfWeek, Map<Integer, DailyWorkoutData>> result = new HashMap<>();
         Map<DayOfWeek, Map<Integer, Integer>> count = new HashMap<>();
 
@@ -119,8 +120,8 @@ public class WorkoutAmountService {
         return timeOfDayDTO;
     }
 
-    public List<WeeklyAggregatedHourDetails> getOrganisedWorkoutDetail(Long userId) {
-        List<WorkoutAmount> workoutAmounts = getWorkoutAmountByUserIdAsc(userId);
+    public List<WeeklyAggregatedHourDetails> getStructuredWorkoutDetail(Long userId) {
+        List<WorkoutAmount> workoutAmounts = getWorkoutAmountRawData(userId);
         List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetailsList = new ArrayList<>();
         for(int i = 0; i < 24; i++) {
             weeklyAggregatedHourDetailsList.add(new WeeklyAggregatedHourDetails(i));
@@ -140,13 +141,13 @@ public class WorkoutAmountService {
         return weeklyAggregatedHourDetailsList;
     }
 
-    public SimulatedActivityDTO getSimulatedActivity(Long userId, boolean isWeekend) {
-        List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetailsList = getOrganisedWorkoutDetail(userId);
-        return getSimulatedActivity(weeklyAggregatedHourDetailsList, isWeekend);
+    public StructuredActivityDTO getStructuredActivityData(Long userId, boolean isWeekend) {
+        List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetailsList = getStructuredWorkoutDetailFromRedis(userId);
+        return getStructuredActivityData(weeklyAggregatedHourDetailsList, isWeekend);
     }
 
-    public SimulatedActivityDTO getSimulatedActivity(List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetails, boolean isWeekend) {
-        SimulatedActivityDTO simulatedActivityDTO = new SimulatedActivityDTO();
+    public StructuredActivityDTO getStructuredActivityData(List<WeeklyAggregatedHourDetails> weeklyAggregatedHourDetails, boolean isWeekend) {
+        StructuredActivityDTO structuredActivityDTO = new StructuredActivityDTO();
         for(int i = 0; i < 24; i++) {
             List<Integer> mvpa = weeklyAggregatedHourDetails.get(i).getMVPA();
             List<Integer> light = weeklyAggregatedHourDetails.get(i).getLight();
@@ -164,34 +165,45 @@ public class WorkoutAmountService {
                 lightSum += light.get(j);
             }
 
-            simulatedActivityDTO.addMVPA(mvpaSum / count);
-            simulatedActivityDTO.addLight(lightSum / count);
-            simulatedActivityDTO.addDescription(weeklyAggregatedHourDetails.get(i).getDescription());
+            structuredActivityDTO.addMVPA(mvpaSum / count);
+            structuredActivityDTO.addLight(lightSum / count);
+            structuredActivityDTO.addDescription(weeklyAggregatedHourDetails.get(i).getDescription());
         }
 
-        return simulatedActivityDTO;
+        return structuredActivityDTO;
     }
 
-    public List<WeeklyAggregatedHourDetails> getOrganisedWorkoutDetailFromRedis(Long userId) {
+    public List<WeeklyAggregatedHourDetails> getStructuredWorkoutDetailFromRedis(Long userId) {
         String redisKey = "activity::" + userId;
-        List<WeeklyAggregatedHourDetails> data = (List<WeeklyAggregatedHourDetails>) redisService.getObject(redisKey);
+        List<WeeklyAggregatedHourDetails> data = redisService.getList(redisKey, WeeklyAggregatedHourDetails.class);
         if(data == null) {
-            data = getOrganisedWorkoutDetail(userId);
-            redisService.saveObject(redisKey, data);
+            data = getStructuredWorkoutDetail(userId);
+            redisService.saveWithExpire(redisKey, data, 30, TimeUnit.MINUTES);
         }
 
         return data;
     }
 
-    public List<WeeklyAggregatedHourDetails> resetOrganisedWorkoutDetailInRedis(Long userId) {
+    public List<WorkoutAmount> getWorkoutAmountRawData(Long userId) {
+        String redisKey = "activityRaw::" + userId;
+        List<WorkoutAmount> data = redisService.getList(redisKey, WorkoutAmount.class);
+        if(data == null) {
+            data = getWorkoutAmountByUserIdAsc(userId);
+            redisService.saveWithExpire(redisKey, data, 30, TimeUnit.MINUTES);
+        }
+
+        return data;
+    }
+
+    public List<WeeklyAggregatedHourDetails> resetStructuredWorkoutDetailInRedis(Long userId) {
         String redisKey = "activity::" + userId;
-        List<WeeklyAggregatedHourDetails> data = getOrganisedWorkoutDetail(userId);
+        List<WeeklyAggregatedHourDetails> data = getStructuredWorkoutDetail(userId);
         redisService.saveObject(redisKey, data);
         return data;
     }
 
     public WorkoutHeatmapDTO getHeatmapFiltered(Long userId, boolean isWeekend) {
-        List<WorkoutAmount> workoutAmounts = getWorkoutAmountByUserIdAsc(userId);
+        List<WorkoutAmount> workoutAmounts = getWorkoutAmountRawData(userId);
         WorkoutHeatmapDTO heatmapDTO = new WorkoutHeatmapDTO();
 
         final int BIN_SIZE = 600;
