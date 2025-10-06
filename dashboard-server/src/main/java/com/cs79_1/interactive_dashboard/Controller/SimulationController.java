@@ -82,8 +82,8 @@ public class SimulationController {
                 predictionRequest.addLight(i, lightScale);
             }
 
-            Object result = flaskAPIService.sendPredictionRequest(predictionRequest);
-            return ResponseEntity.ok((PredictionResultDTO) result);
+            PredictionResultDTO result = flaskAPIService.sendPredictionRequest(predictionRequest).getBody();
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Error fetching simulation chart data for user {}", userId, e);
             return ResponseEntity.internalServerError().build();

@@ -36,8 +36,8 @@ public class FlaskAPIService {
         return restTemplate.getForObject(url, Object.class);
     }
 
-    public ResponseEntity<Object> sendPredictionRequest(AlteredActivityPredictionRequest request) {
+    public ResponseEntity<PredictionResultDTO> sendPredictionRequest(AlteredActivityPredictionRequest request) {
         String url = API_URL;
-        return restTemplate.postForEntity(url, request, Object.class);
+        return restTemplate.postForEntity(url, request, PredictionResultDTO.class);
     }
 }
