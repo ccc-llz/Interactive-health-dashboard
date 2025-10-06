@@ -175,7 +175,7 @@ public class WorkoutAmountService {
 
     public List<WeeklyAggregatedHourDetails> getStructuredWorkoutDetailFromRedis(Long userId) {
         String redisKey = "activity::" + userId;
-        List<WeeklyAggregatedHourDetails> data = (List<WeeklyAggregatedHourDetails>) redisService.getObject(redisKey);
+        List<WeeklyAggregatedHourDetails> data = redisService.getList(redisKey, WeeklyAggregatedHourDetails.class);
         if(data == null) {
             data = getStructuredWorkoutDetail(userId);
             redisService.saveWithExpire(redisKey, data, 30, TimeUnit.MINUTES);
@@ -186,7 +186,7 @@ public class WorkoutAmountService {
 
     public List<WorkoutAmount> getWorkoutAmountRawData(Long userId) {
         String redisKey = "activityRaw::" + userId;
-        List<WorkoutAmount> data = (List<WorkoutAmount>) redisService.getObject(redisKey);
+        List<WorkoutAmount> data = redisService.getList(redisKey, WorkoutAmount.class);
         if(data == null) {
             data = getWorkoutAmountByUserIdAsc(userId);
             redisService.saveWithExpire(redisKey, data, 30, TimeUnit.MINUTES);

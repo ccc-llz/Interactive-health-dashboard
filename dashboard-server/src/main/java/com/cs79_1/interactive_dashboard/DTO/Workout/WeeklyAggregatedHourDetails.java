@@ -11,6 +11,9 @@ public class WeeklyAggregatedHourDetails {
     List<Long> ids = new ArrayList<>();
     List<Integer> daysOfWeek = new ArrayList<>();
 
+    public WeeklyAggregatedHourDetails() {
+    }
+
     public WeeklyAggregatedHourDetails(int startHour) {
         this.description = String.format("%d:00-%d:00", startHour, startHour + 1);
     }

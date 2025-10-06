@@ -7,6 +7,9 @@ public class DailyWorkoutData {
     int MVPA;
     int Light;
 
+    public DailyWorkoutData() {
+    }
+
     public DailyWorkoutData(DayOfWeek dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
         MVPA = 0;
