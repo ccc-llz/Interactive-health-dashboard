@@ -11,7 +11,7 @@ type ActivityData = {
     light: number[];
 }
 
-const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, isWeekend? : boolean }) => {
+const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, isWeekend?: boolean }) => {
     const [resetTrigger, setResetTrigger] = useState(0);
     const [isDataReady, setIsDataReady] = useState(false);
     const [chartData, setChartData] = useState<ActivityData>();
@@ -19,23 +19,23 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
     const [canSimulate, setCanSimulate] = useState(false);
     const [isSimulating, setIsSimulating] = useState(false);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const chartResponse = await apiClient.get('/simulation/chart', {
-                    params: {
-                        isWeekend: isWeekend ?? false
-                    }
-                });
-                const groundtruthResponse = await apiClient.get('/simulation/groundtruth');
-                setChartData(chartResponse.data);
-                setPredictionData({groundTruth: groundtruthResponse.data});
-                setIsDataReady(true);
-            } catch (error) {
-                console.error(error);
-            }
+    const fetchData = async () => {
+        try {
+            const chartResponse = await apiClient.get('/simulation/chart', {
+                params: {
+                    isWeekend: isWeekend ?? false
+                }
+            });
+            const groundtruthResponse = await apiClient.get('/simulation/groundtruth');
+            setChartData(chartResponse.data);
+            setPredictionData({ groundTruth: groundtruthResponse.data });
+            setIsDataReady(true);
+        } catch (error) {
+            console.error(error);
         }
+    }
 
+    useEffect(() => {
         if (MockData) {
             setChartData(MockData);
             setPredictionData({ groundTruth: "NI" });
@@ -45,31 +45,60 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
         }
     }, [MockData])
 
-    const submitSimulation = () => {
+    const submitSimulation = async () => {
         if (MockData) {
+            setIsSimulating(true);
             setPredictionData({
                 groundTruth: "NI",
                 prediction: {
                     newClassification: "HFZ",
                     possibility: 80
                 }
-            })
+            });
+        } else {
+            if (!chartData) return;
+            try {
+                setIsSimulating(true);
+                const response = await apiClient.post("/simulation/predict", {
+                    isWeekend: isWeekend ?? false,
+                    mvpa: chartData.mvpa,
+                    light: chartData.light
+                });
+                setPredictionData(prev => {
+                    return {
+                        ...prev!,
+                        prediction: {
+                            newClassification: response.data.classification,
+                            possibility: response.data.probability
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+            }
         }
-        setIsSimulating(true);
+
+        setIsSimulating(false);
     }
 
     const resetSimulation = () => {
         if (MockData) {
             setChartData(MockData);
             setPredictionData({ groundTruth: "NI" });
+        } else {
+            setIsDataReady(false);
+            fetchData();
         }
         setResetTrigger(prev => prev + 1);
         setIsSimulating(false);
         setCanSimulate(false);
     }
 
-    const onDragEnd = (index, value) => {
-        setCanSimulate(true);
+    const onDragEnd = (datasetIndex: number, index: number, value: number) => {
+        if (!chartData) return;
+        const dataset = datasetIndex == 0 ? 'mvpa' : 'light';
+        if (chartData[dataset][index] !== value) setCanSimulate(true);
+        chartData[dataset][index] = value;
     }
 
     if (!isDataReady) {
@@ -93,7 +122,7 @@ const SimulateActivity = ({ MockData, isWeekend }: { MockData?: ActivityData, is
             </div>
             <div className="w-full h-full flex gap-5 items-center justify-center">
                 <div id="chart" className="w-full h-full">
-                    <SimulateActivityChart data={chartData!} onDragEnd={onDragEnd} resetTrigger={resetTrigger} />
+                    <SimulateActivityChart data={chartData!} DragEndCallback={onDragEnd} resetTrigger={resetTrigger} />
                 </div>
                 <div id="panel" className="h-fit  p-5 flex flex-col items-center gap-5 select-none">
                     <div className="flex gap-2">

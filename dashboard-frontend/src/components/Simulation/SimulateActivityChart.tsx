@@ -3,7 +3,7 @@ import 'chartjs-plugin-dragdata';
 import { Chart } from "chart.js/auto";
 import { type ActivityData } from './SimulateActivity';
 
-const SimulateActivityChart = ({data, onDragEnd, resetTrigger} : {data: ActivityData, onDragEnd? : (index: any, value: any) => void, resetTrigger: number}) => {
+const SimulateActivityChart = ({data, DragEndCallback, resetTrigger} : {data: ActivityData, DragEndCallback? : (datasetIndex: number, index: number, value: number) => void, resetTrigger: number}) => {
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<Chart | null>(null);
 
@@ -67,11 +67,8 @@ const SimulateActivityChart = ({data, onDragEnd, resetTrigger} : {data: Activity
 
                             const numericValue = value != null ? Number(value) : 0;
 
-                            if (onDragEnd) {
-                                onDragEnd({
-                                    index: index,
-                                    value: numericValue
-                                });
+                            if (DragEndCallback) {
+                                DragEndCallback(datasetIndex, index, numericValue);
                             }
                         }
                     }
