@@ -92,7 +92,7 @@ const Tile: React.FC<{ label: string; value: string; unit?: string }> = ({ label
             <div className="leading-tight mt-0.5">
                 <span
                     className="font-semibold text-gray-900"
-                    style={{ fontSize: "clamp(1.05rem, 2vw, 1.4rem)", lineHeight: 1.1 }}
+                    style={{ fontSize: "clamp(1rem, 1.5vw, 1rem)", lineHeight: 1.1 }}
                 >
                     {value}
                 </span>
