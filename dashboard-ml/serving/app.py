@@ -151,7 +151,11 @@ def predict():
         with torch.enable_grad(): 
             logits = model(x.requires_grad_(True), padding_masks=padding_mask, static_features=s_static)
             # ====== backward for AttCAT ======
-            target = logits.gather(1, logits.argmax(1, keepdim=True)).sum()
+            HEALTHY = {"HFZ", "VL"}
+            UNHEALTHY = {"NI", "NIHR"}
+            healthy_idx   = [i for i, name in enumerate(CLASS_NAMES) if name in HEALTHY]
+            unhealthy_idx = [i for i, name in enumerate(CLASS_NAMES) if name in UNHEALTHY]
+            target = logits[:, healthy_idx].mean() - logits[:, unhealthy_idx].mean()
             model.zero_grad(set_to_none=True)
             target.backward()
 
@@ -172,7 +176,19 @@ def predict():
                 score = (cat * a).squeeze(0).detach().cpu().numpy()  # [T,D]
                 att_scores.append(score)
 
-            impact = np.sum(att_scores, axis=0)  # [T,D]，D=3
+            attcat_td = np.sum(att_scores, axis=0)      # [T,D]
+            w_time = np.abs(attcat_td).mean(axis=1)     # [T] time_weight
+            if w_time.max() > 0:
+                w_time = w_time / (w_time.max() + 1e-6)
+
+            # ====== direction ======
+            dX = x.grad.detach().cpu().numpy()[0]       # [T,C]
+            dX_valid = dX[:valid_len, :]                # [valid_len, C]
+            w_valid  = w_time[:valid_len][:, None]      # [valid_len, 1]
+
+            # ====== direction × time_weight ======
+            impact = dX_valid * w_valid                 # [valid_len, C]
+
             vmax = np.percentile(np.abs(impact), 99)
             if vmax == 0: vmax = 1e-6
             impact = np.clip(impact, -vmax, vmax) / vmax
@@ -267,22 +283,19 @@ def simulate_predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 404
 
-    # 日别掩码
     weekday_idx = df["ts"].dt.weekday
     day_mask = (weekday_idx < 5) if is_weekdays else (weekday_idx >= 5)
     hours = df["ts"].dt.hour
-
-    # 在原始量纲调整 → 再归一化
     CLIP_MIN, CLIP_MAX = 0.0, 3600.0
 
     def _apply_pct_by_hour(series: pd.Series, pct_map: dict):
         """
-        对给定 series（如 f1=mvpa / f3=light）在每个小时段乘以 (1 + pct)，
+        对给定 series（如 f1=mvpa / f3=light）在每个小时段乘以 (pct)，
         以实现“均值按百分比调整”的效果。
         """
         s = series.copy().astype(float)
         for h, pct in pct_map.items():
-            factor = 1.0 + float(pct)               # 0.2 => 1.2；-0.1 => 0.9
+            factor = float(pct)               # 0.2 => 1.2；-0.1 => 0.9
             # 可选：限制 factor 下界，避免极端负值导致反号
             # factor = max(0.0, factor)
 
@@ -333,6 +346,12 @@ def simulate_predict():
         top_prob  = float(top_prob.cpu().item())
 
     top_prob = round(top_prob*100, 2)
+
+    pred_idx = int(torch.argmax(probs_t, dim=1).item())
+    pred_label = CLASS_NAMES[pred_idx]
+    prob = float(probs_t[0, pred_idx].item())
+    # print(f"category: {pred_label} (index={pred_idx}, prob={prob:.4f})")
+    # print("probability：", {CLASS_NAMES[i]: float(probs_t[0,i]) for i in range(NUM_CLASSES)})
 
     return jsonify({
         "classification": top_label,
