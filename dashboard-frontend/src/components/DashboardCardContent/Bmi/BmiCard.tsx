@@ -13,17 +13,17 @@ const categoryColors = (classification: string) => {
             catColor.bg = 'bg-green-300/50';
             catColor.text = 'text-green-600';
             break;
-        case 'NI':
+        case 'NIHR':
             catColor.bg = 'bg-red-300/50';
             catColor.text = 'text-red-600';
             break;
-        case 'NIHR':
+        case 'NI':
             catColor.bg = 'bg-orange-300/50';
             catColor.text = 'text-orange-600';
             break;
         case 'VL':
-            catColor.bg = 'bg-brown-300/50';
-            catColor.text = 'text-brown-600';
+            catColor.bg = 'bg-lime-300/50';
+            catColor.text = 'text-lime-600';
             break;
     }
     return catColor;
