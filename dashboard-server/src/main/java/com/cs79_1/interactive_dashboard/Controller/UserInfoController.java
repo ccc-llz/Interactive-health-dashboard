@@ -1,6 +1,7 @@
 package com.cs79_1.interactive_dashboard.Controller;
 
 import com.cs79_1.interactive_dashboard.DTO.UserInfoResponse;
+import com.cs79_1.interactive_dashboard.DTO.Avatar.AvatarResponseDTO;
 import com.cs79_1.interactive_dashboard.Entity.User;
 import com.cs79_1.interactive_dashboard.Security.JwtUtil;
 import com.cs79_1.interactive_dashboard.Security.SecurityUtils;
@@ -50,14 +51,12 @@ public class UserInfoController {
         }
     }
     @GetMapping("/avatar")
-    public ResponseEntity<Map<String, Object>> getAvatar() {
+    public ResponseEntity<AvatarResponseDTO> getAvatar() {
         Long userId = SecurityUtils.getCurrentUserId();
         try {
             User user = userService.getUserByUserId(userId).orElseThrow();
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", user.getId());
-            response.put("avatarUrl", user.getAvatarUrl());
-            return ResponseEntity.ok(response);
+            AvatarResponseDTO dto = new AvatarResponseDTO(user.getId(), user.getAvatarUrl());
+            return ResponseEntity.ok(dto);
         } catch (Exception e) {
             logger.error("Error fetching avatar for user {}", userId, e);
             return ResponseEntity.internalServerError().build();
