@@ -27,15 +27,16 @@ const FoodIntakeWrapper: React.FC = () => {
     setError(null);
 
 try {
-  const res = await apiClient.get("food-intake/intake-by-category");
+  const res = await apiClient.get("/food-intake/intake-by-category");
   console.log("Calling intake-by-category with baseURL:", (apiClient as any).defaults?.baseURL);
   console.log("food-intake/intake-by-category response:", res);
 
   const formatted: GroupDatum[] = res.data.map((item: any) => ({
-    group: item.category,
-    actual: item.amount,
-    recommended: 0, 
+    group: item.group,          
+    actual: item.actual,        
+    recommended: 100,           // temporary placeholder, must be > 0 for bars to show
   }));
+
 
   setActualData(formatted);
 } catch (err: any) {

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/food-intake")
+@RequestMapping("/api/food-intake")
 public class FoodIntakeController {
 
     @Autowired
@@ -22,13 +22,13 @@ public class FoodIntakeController {
     @Autowired
     private WeeklyIntakeRepository weeklyIntakeRepository;
 
-    @GetMapping("rings")
+    @GetMapping("/rings")
     public FoodIntakeResultDto getFoodIntakeRings() {
         long userId = SecurityUtils.getCurrentUserId();
         return foodIntakeService.calculateFoodIntake(userId);
     }
 
-    @GetMapping("intake-by-category")
+    @GetMapping("/intake-by-category")
 
     public List<FoodIntakeByCategory> getWeeklyIntakeByUser() {
 
