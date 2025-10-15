@@ -309,6 +309,8 @@ def simulate_predict(data):
         df["f1"] = _apply_pct_by_hour(df["f1"], mvpa_pct)
     if light_pct:
         df["f3"] = _apply_pct_by_hour(df["f3"], light_pct)
+
+    # ===== 组特征并归一化 =====
     feat = df[["f1", "f2", "f3"]].copy()
     feat.columns = ["f1", "f2", "f3"]
     feat = normalizer.normalize(feat)
