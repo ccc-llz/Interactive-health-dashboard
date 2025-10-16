@@ -92,6 +92,7 @@ public class AdminAccountInitializer {
 
             User admin = adminOptional.get();
             admin.setPassword(passwordEncoder.encode(newPassword));
+            redisTemplate.opsForValue().set("superadmin:password", newPassword);
             userRepository.save(admin);
 
             logger.info("Admin account rolled password: '{}', at {}", newPassword, LocalDateTime.now());
