@@ -45,9 +45,9 @@ normalizer = Normalizer(norm_dict["norm_type"],
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = TSTransformerEncoderClassiregressor(
-    feat_dim=3, max_len=MAX_SEQ_LEN, d_model=64, n_heads=8, num_layers=4,
+    feat_dim=3, max_len=MAX_SEQ_LEN, d_model=32, n_heads=8, num_layers=2,
     dim_feedforward=512, num_classes=NUM_CLASSES,
-    dropout=0.1, pos_encoding='fixed', activation='gelu', norm='BatchNorm', freeze=False,
+    dropout=0.2, pos_encoding='fixed', activation='gelu', norm='BatchNorm', freeze=False,
     pooling='mean', static_features_dim=2 if USE_STATIC else 0
 )
 model = utils.load_model(model, CHECKPOINT)
