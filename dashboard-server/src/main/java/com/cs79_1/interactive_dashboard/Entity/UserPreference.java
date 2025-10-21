@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 @Entity
 public class UserPreference {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     @Version
