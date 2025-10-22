@@ -106,16 +106,16 @@ const Settings = () => {
                     </div>
 
 
-                    <div className="w-full md:w-1/3 flex flex-col items-center">
+                    {/* <div className="w-full md:w-1/3 flex flex-col items-center">
                         <h3 className="text-xl font-bold font-[Nunito] text-gray-700 dark:text-gray-200 mb-4">Profile picture</h3>
 
-                        <AvatarUploader
+                       <AvatarUploader
                             currentAvatar={avatarUrl}
                             // isUploading={isUploading}
                             onFileSelect={handleFileSelect} />
 
-                    </div>
-                </div>
+                    </div>*/}
+                </div>  
             </DashboardCard>
         </div>
     );
