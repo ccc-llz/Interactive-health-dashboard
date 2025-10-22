@@ -3,6 +3,12 @@ import { useForm, Controller } from "react-hook-form";
 import { Form, Input, Button, Select, SelectItem } from "@heroui/react";
 import { apiClient } from "../../service/axios";
 import DashboardCard from "../../components/DashboardCard";
+import AvatarUploader from "../../components/Settings/AvatarUploader";
+import defaultAvartar from "../../assets/豹豹Idle.svg";
+import { userAPI } from "../../service/api";
+import { API_CONFIG } from "../../config/api";
+
+
 
 type Profile = {
   id: number;
@@ -24,10 +30,15 @@ const defaultProfile: Profile = {
   sex: 0,
 };
 
+
+
 const Profile: React.FC = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(defaultAvartar);
+  const [isUploading, setIsUploading] = useState(false);
+  const [userId, setUserId] = useState(0);
 
   const mounted = useRef(true);
 
@@ -41,10 +52,39 @@ const Profile: React.FC = () => {
     mode: "onBlur",
   });
 
+  const selectedFileRef = useRef<File | null>(null);
+
+  const handleFileSelect = (file: File) => {
+  selectedFileRef.current = file; 
+  setAvatarUrl(URL.createObjectURL(file)); 
+};
+
+
   useEffect(() => {
     mounted.current = true;
-    apiClient
-      .get<Profile>("/static/user_info")
+    const fetchAvatar = async () => {
+        try {
+            const responseData = await userAPI.getAvatar();
+            if (responseData && responseData.id) {
+                console.log("id:", responseData.id)
+                setUserId(responseData.id);
+                if (responseData.avatarUrl) {
+                    setAvatarUrl(`${API_CONFIG.BASE_URL}${responseData.avatarUrl}`);
+                    console.log(`${API_CONFIG.BASE_URL}${responseData.avatarUrl}`);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to load avatar", err);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+    fetchAvatar();
+
+    
+
+
+    apiClient.get<Profile>("/static/user_info")
       .then((res) => {
         if (!mounted.current) return;
         console.log("Loaded profile:", res);
@@ -83,6 +123,13 @@ const Profile: React.FC = () => {
 
     setSaving(true);
     try {
+      if (selectedFileRef.current) {
+          const file = selectedFileRef.current;
+          const uploadRes = await userAPI.uploadAvatar(userId, file);
+          setAvatarUrl(`${API_CONFIG.BASE_URL}${uploadRes.avatarUrl}`);
+        }
+
+
       const res = await apiClient.put<Profile>("/static/user_info_update", payload);
       const updated: Profile = {
         ...res.data,
@@ -95,6 +142,8 @@ const Profile: React.FC = () => {
       setProfile(updated);
       reset(updated);
       alert("Profile saved");
+      window.location.reload();
+
     } catch (err: any) {
       console.error("Save failed:", err);
       const msg = err?.response?.data ? JSON.stringify(err.response.data) : (err.message || "Unknown error");
@@ -118,6 +167,14 @@ const Profile: React.FC = () => {
     <div className="p-4 pl-2 h-full">
       <DashboardCard className="h-full" noHover={true}>
         <div className="h-full p-4">
+          <div className="text-center">
+            <h3 className="font-semibold mb-2">Profile picture</h3>
+            <AvatarUploader
+              currentAvatar={avatarUrl}
+              onFileSelect={handleFileSelect}
+            />
+          </div>
+      
           <Form
             aria-label="Profile Form"
             className="w-full max-w-md flex flex-col gap-4"
@@ -199,7 +256,7 @@ const Profile: React.FC = () => {
             <Controller
               name="ageYear"
               control={control}
-              rules={{ min: { value: 1, message: "Age must be >= 1" } }}
+              rules={{ min: { value: 9, message: "Age must be >= 9" }, max: { value: 18, message: "Age must be <= 18" } }}
 
               render={({ field }) => (
                 <Input
