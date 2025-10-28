@@ -9,6 +9,7 @@ import com.cs79_1.interactive_dashboard.Entity.BodyMetrics;
 import com.cs79_1.interactive_dashboard.Entity.User;
 import com.cs79_1.interactive_dashboard.Entity.UserPreference;
 import com.cs79_1.interactive_dashboard.Enum.HFZClassification;
+import com.cs79_1.interactive_dashboard.Exception.UserNotExistException;
 import com.cs79_1.interactive_dashboard.Repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,7 +167,7 @@ public class StaticInfoService {
     
     private com.cs79_1.interactive_dashboard.Entity.MentalHealthAndDailyRoutine loadSleepRow(long userId) {
         return mentalHealthAndDailyRoutineRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new RuntimeException("No sleep row for user " + userId));
+                .orElseThrow(UserNotExistException::new);
     }
 
     public double getSchoolNightAvgHours(long userId) {
@@ -182,7 +183,7 @@ public class StaticInfoService {
     }
     public BodyCompositionSummary getBodyCompositionSummary(long userId) {
         BodyComposition bc = bodyCompositionRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("No body composition for user " + userId));
+                .orElseThrow(UserNotExistException::new);
 
         double fat = bc.getFatPercentage();
         double muscle = bc.getMuscleAmount();
@@ -215,7 +216,7 @@ public class StaticInfoService {
 
     public BodyMetricsSummaryDTO getBodyMetricsSummary(long userId) {
         BodyMetrics bodyMetrics = bodyMetricsRepository.findByUserId(userId);
-        BodyComposition bodyComposition = bodyCompositionRepository.findByUserId(userId).orElseThrow();
+        BodyComposition bodyComposition = bodyCompositionRepository.findByUserId(userId).orElseThrow(UserNotExistException::new);
 
         double height = bodyMetrics.getHeight();
         double weight = bodyMetrics.getWeight();
@@ -228,7 +229,7 @@ public class StaticInfoService {
     }
 
     public String getHFZClassification(long userId) {
-        BodyComposition bc = bodyCompositionRepository.findByUserId(userId).orElseThrow();
+        BodyComposition bc = bodyCompositionRepository.findByUserId(userId).orElseThrow(UserNotExistException::new);
         HFZClassification classification = bc.getHfzBMI();
 
         return classification.name();
@@ -332,7 +333,7 @@ public class StaticInfoService {
             String password // optional
     ) {
         User user = userService.getUserByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User not exist"));
+                .orElseThrow(UserNotExistException::new);
 
         if (username != null) user.setUsername(username);
         if (firstName != null) user.setFirstName(firstName);

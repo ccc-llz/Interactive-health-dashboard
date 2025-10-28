@@ -6,6 +6,7 @@ import com.cs79_1.interactive_dashboard.DTO.DietaryIntake.FoodIntakeResultDto;
 import com.cs79_1.interactive_dashboard.DTO.Workout.WorkoutOverviewDTO;
 import com.cs79_1.interactive_dashboard.Entity.BodyMetrics;
 import com.cs79_1.interactive_dashboard.Entity.WeeklyIntake;
+import com.cs79_1.interactive_dashboard.Exception.UserNotExistException;
 import com.cs79_1.interactive_dashboard.Repository.WeeklyIntakeRepository;
 import com.cs79_1.interactive_dashboard.Security.SecurityUtils;
 import com.cs79_1.interactive_dashboard.Service.StaticInfoService;
@@ -91,42 +92,65 @@ public class StaticInfoController {
         }
     }
     @GetMapping("/sleep-summary")
-    public ResponseEntity<SleepSummary> getSleepSummary() {
+    public ResponseEntity<?> getSleepSummary() {
         long userId = SecurityUtils.getCurrentUserId();
 
-        double school = staticInfoService.getSchoolNightAvgHours(userId);
-        double weekend = staticInfoService.getWeekendNightAvgHours(userId);
-        double week = staticInfoService.getTotalWeekHours(userId);
+        try {
+            double school = staticInfoService.getSchoolNightAvgHours(userId);
+            double weekend = staticInfoService.getWeekendNightAvgHours(userId);
+            double week = staticInfoService.getTotalWeekHours(userId);
 
-        int thisWeekAvgMin = (int) Math.round((week / 7.0) * 60.0);
+            int thisWeekAvgMin = (int) Math.round((week / 7.0) * 60.0);
 
-        SleepSummary dto = new SleepSummary();
-        dto.setThisWeekAvgMin(thisWeekAvgMin);
-        dto.setSchoolNightAvgHrs(school);
-        dto.setWeekendNightAvgHrs(weekend);
+            SleepSummary dto = new SleepSummary();
+            dto.setThisWeekAvgMin(thisWeekAvgMin);
+            dto.setSchoolNightAvgHrs(school);
+            dto.setWeekendNightAvgHrs(weekend);
 
-        return ResponseEntity.ok(dto);
+            return ResponseEntity.ok(dto);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Failed fetching sleep summary for user with id " + userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/body-composition")
-    public ResponseEntity<BodyCompositionSummary> getBodyComposition() {
+    public ResponseEntity<?> getBodyComposition() {
         long userId = SecurityUtils.getCurrentUserId();
-        BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
-        return ResponseEntity.ok(dto);
+
+        try {
+            BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
+            return ResponseEntity.ok(dto);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Failed fetching body composition for user with id " + userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/body-composition/wlgr-wlgx")
-    public ResponseEntity<Map<String, Double>> getWlgrWlgx() {
+    public ResponseEntity<?> getWlgrWlgx() {
         long userId = SecurityUtils.getCurrentUserId();
-        BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
 
-        Map<String, Double> result = new HashMap<>();
-        result.put("wlgr625", dto.getWlgr625());
-        result.put("wlgr50", dto.getWlgr50());
-        result.put("wlgx625", dto.getWlgx625());
-        result.put("wlgx50", dto.getWlgx50());
+        try {
+            BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
 
-        return ResponseEntity.ok(result);
+            Map<String, Double> result = new HashMap<>();
+            result.put("wlgr625", dto.getWlgr625());
+            result.put("wlgr50", dto.getWlgr50());
+            result.put("wlgx625", dto.getWlgx625());
+            result.put("wlgx50", dto.getWlgx50());
+
+            return ResponseEntity.ok(result);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Failed fetching bioelectrical data for user with id " + userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/workout-overview")
@@ -176,16 +200,17 @@ public class StaticInfoController {
             Integer sex = req.getSex() != null ? req.getSex() : existing.getSex();
             String password = req.getPassword();
             UserInfoResponse updated = staticInfoService.updateUserInfo(
-                userId,
-                username,
-                firstName,
-                lastName,
-                ageYear,
-                sex,
-                password
+                    userId,
+                    username,
+                    firstName,
+                    lastName,
+                    ageYear,
+                    sex,
+                    password
             );
             return ResponseEntity.ok(updated);
-
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                                 .body(null);

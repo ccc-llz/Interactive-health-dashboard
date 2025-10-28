@@ -3,6 +3,7 @@ package com.cs79_1.interactive_dashboard.Service;
 import com.cs79_1.interactive_dashboard.Entity.User;
 import com.cs79_1.interactive_dashboard.Entity.UserPreference;
 import com.cs79_1.interactive_dashboard.Enum.UserPreference.UIAppearance;
+import com.cs79_1.interactive_dashboard.Exception.UserNotExistException;
 import com.cs79_1.interactive_dashboard.Repository.UserPreferenceRepository;
 import com.cs79_1.interactive_dashboard.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ public class UserService {
 
     @Transactional
     public UserPreference getOrCreateUserPreference(long userId) {
-        User user = getUserByUserId(userId).orElseThrow();
+        User user = getUserByUserId(userId).orElseThrow(UserNotExistException::new);
         Optional<UserPreference> userPreferenceOptional = userPreferenceRepository.findByUserId(userId);
         if (userPreferenceOptional.isPresent()) {
             return userPreferenceOptional.get();
