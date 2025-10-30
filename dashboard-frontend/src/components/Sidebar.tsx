@@ -42,7 +42,7 @@ const sidebarData = {
         {
             title: 'Get Help',
             icon: CircleQuestionMark,
-            url: '/help'
+            url: '/get-help'
         }
     ]
 }
