@@ -80,10 +80,8 @@ function RingLayer({
 function toFixed1(n: number) { return Number.isFinite(n) ? n.toFixed(1) : "0.0"; }
 
 const FoodIntakeRings: React.FC<FoodIntakeResultDto> = (data) => {
-  //const actualValues = [data.energy, data.protective, data.bodyBuilding];
-  //const recAbs = [data.recEnergy, data.recProtective, data.recBodyBuilding];
+  
   const pctOfRec = [data.pctEnergy, data.pctProtective, data.pctBodyBuilding];
-  //const pctOfDaily = [data.dailyPctEnergy ?? 0,data.dailyPctProtective ?? 0,data.dailyPctBodyBuilding ?? 0,];
 
   const chartData = {
     labels: labels.map((label) => label),
@@ -120,25 +118,12 @@ const FoodIntakeRings: React.FC<FoodIntakeResultDto> = (data) => {
 
   return (
     <div className='flex flex-col w-full h-full'>
-      <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 text-lg tracking-tight font-bold font-[Nunito] min-h-10 flex-shrink-0">
+      <h1 className="w-fit opacity-100 rounded-lg text-gray-800 dark:text-gray-200 select-none pl-1 text-lg tracking-tight font-bold font-[Nunito] min-h-10 flex-shrink-0">
         Dietary Intake
       </h1>
       <div className="h-full w-full flex gap-0 items-center justify-between flex-1 p-2">
         <div className="h-full w-full min-w-0 min-h-0 drop-shadow-lg">
-          {/* <svg className="h-full w-full drop-shadow-lg" viewBox="0 0 200 200" role="img" aria-label="Food intake rings">
-            {radii.map((r, idx) => (
-              <RingLayer
-                key={labels[idx]}
-                cx={100}
-                cy={100}
-                r={r}
-                trackColor={ringColors[idx].recommended}
-                fillColor={ringColors[idx].actual}
-                arcPct={Math.min(1, Math.max(0, (pctOfRec[idx] || 0) / 100))}
-              />
-            ))}
-          </svg> */}
-          <Doughnut data={chartData} options={chartOptions} />
+          <Doughnut data={chartData} options={chartOptions} className="dark:brightness-70 dark:saturate-120 dark:contrast-150"/>
         </div>
 
         {/* Legend */}
@@ -147,7 +132,7 @@ const FoodIntakeRings: React.FC<FoodIntakeResultDto> = (data) => {
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {/* <span title="Recommended (track)" style={{ width: 12, height: 12, background: ringColors[idx].recommended, display: "inline-block", borderRadius: 2 }} /> */}
-                <span title="Actual (arc)" className="rounded-full border-1 border-black/20 shadow-md w-5 h-3" style={{ background: ringColors[idx].actual, display: "inline-block" }} />
+                <span title="Actual (arc)" className="rounded-full border-1 border-black/20 shadow-md w-5 h-3 dark:brightness-70 dark:saturate-120 dark:contrast-150" style={{ background: ringColors[idx].actual, display: "inline-block" }} />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-md font-semibold">{label}</h1>
@@ -164,11 +149,14 @@ const FoodIntakeRings: React.FC<FoodIntakeResultDto> = (data) => {
 
 const FoodIntake: React.FC = () => {
   const [data, setData] = useState<FoodIntakeResultDto | null>(null);
+  const [error, setError] = useState(false);
+
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await apiClient.get("food-intake/rings");
+        const response = await apiClient.get("/food-intake/rings");
+        console.log("food-intake/rings response:", response);
         const data = response.data as FoodIntakeResultDto;
         setData({
           energy: data.energy,
@@ -186,26 +174,20 @@ const FoodIntake: React.FC = () => {
         });
       } catch (e) {
         console.error("food-intake api error:", e);
-        // final demo fallback
-        const energy = 50, protective = 35, bodyBuilding = 15;
-        const total = energy + protective + bodyBuilding;
-        const recEnergy = 0.5 * total, recProtective = 0.35 * total, recBodyBuilding = 0.15 * total;
-        setData({
-          energy, protective, bodyBuilding,
-          recEnergy, recProtective, recBodyBuilding,
-          pctEnergy: (energy / recEnergy) * 100,
-          pctProtective: (protective / recProtective) * 100,
-          pctBodyBuilding: (bodyBuilding / recBodyBuilding) * 100,
-          dailyPctEnergy: (energy / total) * 100,
-          dailyPctProtective: (protective / total) * 100,
-          dailyPctBodyBuilding: (bodyBuilding / total) * 100,
-        });
+        setError(true);
       }
     }
     fetchData();
   }, []);
 
-  if (!data) return <div>No data</div>;
+  if (error || !data) {
+    return (
+      <div className="w-full h-full flex items-center justify-center backdrop-blur-sm text-gray-400 dark:text-gray-300">
+        No data
+      </div>
+    );
+  }
+
   return (
     <div id="Dietary Intake Container" className="w-full h-full">
       <FoodIntakeRings {...data} />

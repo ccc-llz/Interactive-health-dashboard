@@ -51,6 +51,7 @@ function minutesToLabel(mins: number | undefined) {
 export default function SleepGauges() {
     const [data, setData] = useState<ApiResp | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -59,11 +60,7 @@ export default function SleepGauges() {
                 setData(resp.data as ApiResp);
             } catch {
 
-                setData({
-                    thisWeekAvgMin: 462,
-                    schoolNightAvgHrs: 8.5,
-                    weekendNightAvgHrs: 9.0,
-                });
+                setError(true);
             } finally {
                 setLoading(false);
             }
@@ -80,12 +77,21 @@ export default function SleepGauges() {
         { title: "Weekend Night", value: weekendMin },
     ]), [thisWeekMin, schoolMin, weekendMin]);
 
+
+    if (error || !data) {
+        return (
+            <div className="w-full h-full flex items-center justify-center backdrop-blur-sm text-gray-400 dark:text-gray-300">
+                No data
+            </div>
+        );
+    }
+
     return (
         <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 gap-1">
             {cards.map((c) => (
-                <div key={c.title} className="h-full rounded-xl px-1 py-2 bg-white/50 dark:bg-white/10 flex flex-col justify-center items-center inset-shadow-sm/10 outline-1 outline-gray-200">
+                <div key={c.title} className="h-full rounded-xl px-1 py-2 bg-white/50 dark:bg-black/40 flex flex-col justify-center items-center inset-shadow-sm/10 outline-1 outline-gray-200 dark:outline-gray-800/80">
                     <div className="w-full relative flex flex-col items-center justify-center">
-                        <Doughnut data={mkGaugeData(c.value)} options={gaugeOptions} />
+                        <Doughnut data={mkGaugeData(c.value)} options={gaugeOptions} className="dark:brightness-70 dark:saturate-120 dark:contrast-150"/>
                         <div className="flex px-1 flex-col -mt-2 items-center justify-end pb-2">
                             <div className="flex items-baseline space-x-1">
                                 <span className="text-xl font-bold leading-tight">

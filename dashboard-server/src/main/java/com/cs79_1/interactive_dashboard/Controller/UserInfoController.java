@@ -1,10 +1,13 @@
 package com.cs79_1.interactive_dashboard.Controller;
 
 import com.cs79_1.interactive_dashboard.DTO.UserInfoResponse;
+import com.cs79_1.interactive_dashboard.DTO.Avatar.AvatarResponseDTO;
 import com.cs79_1.interactive_dashboard.Entity.User;
+import com.cs79_1.interactive_dashboard.Exception.UserNotExistException;
 import com.cs79_1.interactive_dashboard.Security.JwtUtil;
 import com.cs79_1.interactive_dashboard.Security.SecurityUtils;
 import com.cs79_1.interactive_dashboard.Service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Security;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/user/")
 public class UserInfoController {
@@ -25,26 +31,43 @@ public class UserInfoController {
 
     @Autowired
     private JwtUtil jwtUtil;
-
-    private final static Logger logger = LoggerFactory.getLogger(UserInfoController.class);
-
+    
     @GetMapping("/info")
-    public ResponseEntity<UserInfoResponse> getInfo(){
+    public ResponseEntity<?> getInfo(){
         Long userId = SecurityUtils.getCurrentUserId();
         try {
             User user = userService.getUserByUserId(userId).get();
             String username = user.getUsername();
             String firstName = user.getFirstName();
             String lastName = user.getLastName();
-            if(firstName == null || firstName.isEmpty()) firstName = "Participant";
-            if(lastName == null || lastName.isEmpty()) lastName = username.substring(6);
-            UserInfoResponse userInfoResponse = new UserInfoResponse(username, firstName, lastName, user.getAgeYear(), user.getSex(), user.getId());
+            if (firstName == null || firstName.isEmpty()) firstName = "Participant";
+            if (lastName == null || lastName.isEmpty()) lastName = username.substring(6);
+            String appearance = userService.getOrCreateUserPreference(userId).getAppearance().name();
+            UserInfoResponse userInfoResponse = new UserInfoResponse(username, firstName, lastName, user.getAgeYear(), user.getSex(), user.getId(), appearance);
 
-            logger.info("User {} fetched info", username);
+            log.info("User {} fetched info", username);
             return ResponseEntity.ok(userInfoResponse);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
         } catch (Exception e) {
-            logger.error("Error fetching userinfo of userid {}", userId, e);
+            log.error("Error fetching userinfo of userid {}", userId, e);
             return ResponseEntity.internalServerError().build();
         }
     }
+    @GetMapping("/avatar")
+    public ResponseEntity<?> getAvatar() {
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        try {
+            User user = userService.getUserByUserId(userId).orElseThrow(UserNotExistException::new);
+            AvatarResponseDTO dto = new AvatarResponseDTO(user.getId(), user.getAvatarUrl());
+            return ResponseEntity.ok(dto);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Error fetching avatar for user {}", userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 }

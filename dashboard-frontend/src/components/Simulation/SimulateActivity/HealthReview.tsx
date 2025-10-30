@@ -13,30 +13,30 @@ type ReviewData = {
 const HealthLabelMappedTextColor = (label: string) => {
     switch (label) {
         case "VL":
-            return "text-lime-600";
+            return "text-lime-600 dark:text-lime-300";
         case "HFZ":
-            return "text-green-600";
+            return "text-green-600 dark:text-green-300";
         case "NI":
-            return "text-orange-500";
+            return "text-orange-500 dark:text-orange-200";
         case "NIHR":
-            return "text-red-600";
+            return "text-red-600 dark:text-red-200";
         default:
-            return "text-slate-600"
+            return "text-slate-600 dark:text-slate-200"
     }
 }
 
 const HealthLabelMappedBackgroundColor = (label: string) => {
     switch (label) {
         case "VL":
-            return "bg-lime-500/20";
+            return "bg-lime-500/20 dark:bg-lime-700/20";
         case "HFZ":
-            return "bg-green-400/20";
+            return "bg-green-400/20 dark:bg-green-800/20";
         case "NI":
-            return "bg-orange-500/20";
+            return "bg-orange-500/20 dark:bg-orange-700/20";
         case "NIHR":
-            return "bg-red-600/20";
+            return "bg-red-600/20 dark:bg-red-800/20";
         default:
-            return "bg-slate-400/20"
+            return "bg-slate-400/20 dark:bg-slate-800/20"
     }
 }
 
@@ -52,7 +52,7 @@ const HealthReview = ({ data }: { data?: ReviewData }) => {
     }, [data]);
 
     return (
-        <div className={`rounded-2xl outline-3 border-2 outline-gray-200/50 border-white shadow-lg/20 inset-shadow-sm/20 w-fit overflow-clip`}>
+        <div className={`rounded-2xl outline-3 border-2 outline-gray-200/50 dark:outline-gray-700/50 border-white dark:border-gray-800 shadow-lg/20 inset-shadow-sm/20 w-fit overflow-clip`}>
             {
                 !isDataReady ? (
                     <div className={`bg-slate-400 flex flex-col p-4 gap-2 ${HealthLabelMappedTextColor(reviewData?.prediction?.newClassification ?? '--')}`}>
@@ -69,7 +69,7 @@ const HealthReview = ({ data }: { data?: ReviewData }) => {
                             {
                                 reviewData!.isLoading ?
                                     (
-                                        <div className="flex flex-col items-center justify-center bg-stone-100 text-stone-600 gap-4 p-4 pt-2">
+                                        <div className="flex flex-col items-center justify-center bg-stone-100 dark:bg-gray-800 text-stone-600 dark:text-stone-200 gap-4 p-4 pt-2">
                                             <h3>Prediction</h3>
                                             {/* <h1 className="text-5xl font-[Nunito] font-bold">?</h1> */}
                                             <Spinner color="default" size="sm"/>

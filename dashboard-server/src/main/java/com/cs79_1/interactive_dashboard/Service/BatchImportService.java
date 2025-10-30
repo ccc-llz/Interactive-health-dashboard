@@ -8,14 +8,20 @@ import com.cs79_1.interactive_dashboard.Enum.MentalStrength;
 import com.cs79_1.interactive_dashboard.Enum.Role;
 import com.cs79_1.interactive_dashboard.Enum.WeightClassification;
 import com.cs79_1.interactive_dashboard.Repository.*;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -25,7 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-
+@Slf4j
 @Service
 public class BatchImportService {
     @Autowired
@@ -55,8 +61,10 @@ public class BatchImportService {
     @Autowired
     private EntityManager entityManager;
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchImportService.class);
-
+    //register
+    public record RegisterResult(Long userId, String username) {}
+    private final ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    
     private final Map<String, ImportProgress> progressMap = new ConcurrentHashMap<>();
 
     public ImportProgress getProgress(String jobId){
@@ -91,7 +99,7 @@ public class BatchImportService {
                 saveMentalHealthAndDailyRoutine(user, row);
             } catch (Exception e){
                 entityManager.clear();
-                logger.error("Error occurs when processing row " + (i+1) + ": " + e);
+                log.error("Error occurs when processing row " + (i+1) + ": " + e);
             }
         }
     }
@@ -126,7 +134,7 @@ public class BatchImportService {
                     entityManager.clear();
                     progress.incrementFailed();
                     progress.addError("Row " + i + ": " + e.getMessage());
-                    logger.error("Error occurs when processing row " + (i+1) + ": " + e);
+                    log.error("Error occurs when processing row " + (i+1) + ": " + e);
                 }
             }
 
@@ -138,7 +146,7 @@ public class BatchImportService {
                 progress.setStatus("Failed " + e.getMessage());
                 progress.setCompleted(true);
             }
-            logger.error("Import failed: ", e);
+            log.error("Import failed: ", e);
         }
     }
 
@@ -156,7 +164,7 @@ public class BatchImportService {
                     if (fileName == null || !fileName.endsWith(".csv")) {
                         progress.incrementFailed();
                         progress.addError(fileName + " is not a csv file");
-                        logger.error("Skipping non-CSV file: " + fileName);
+                        log.error("Skipping non-CSV file: " + fileName);
                         continue;
                     }
 
@@ -166,11 +174,11 @@ public class BatchImportService {
                     progress.incrementProgress();
                     progress.setCurrent(i);
                     progress.setStatus("Processing " + i);
-                    logger.info("Successfully imported " + fileName);
+                    log.info("Successfully imported " + fileName);
                 } catch (Exception e) {
                     progress.incrementFailed();
                     progress.addError("File " + i + "failed: " + e.getMessage());
-                    logger.error("Error importing " + fileInfo.getOriginalName() + ": " + e.getMessage());
+                    log.error("Error importing " + fileInfo.getOriginalName() + ": " + e.getMessage());
                 }
             }
             progress.setCompleted(true);
@@ -181,7 +189,7 @@ public class BatchImportService {
                 progress.setStatus("Failed " + e.getMessage());
                 progress.setCompleted(true);
             }
-            logger.error("Import failed: ", e);
+            log.error("Import failed: ", e);
         }
     }
 
@@ -189,7 +197,7 @@ public class BatchImportService {
     public void importWorkoutAmountData(Path filePath, String participantId, String originalFileName) throws Exception {
         Optional<User> userOptional = userRepository.findByUsername(participantId);
         if (userOptional.isEmpty()){
-            logger.error(String.format("User with id %s not found", participantId));
+            log.error(String.format("User with id %s not found", participantId));
             throw new Exception("User not found");
         }
 
@@ -204,7 +212,7 @@ public class BatchImportService {
             try {
                 saveWorkoutAmount(user, row);
             } catch (Exception e){
-                logger.error("Error occurs when processing row " + (i+1) + "in file " + originalFileName + ": " + e.getMessage());
+                log.error("Error occurs when processing row " + (i+1) + "in file " + originalFileName + ": " + e.getMessage());
             }
         }
     }
@@ -213,7 +221,7 @@ public class BatchImportService {
     public void importWorkoutAmountData(MultipartFile file, String participantId) throws Exception {
         Optional<User> userOptional = userRepository.findByUsername(participantId);
         if (userOptional.isEmpty()){
-            logger.error(String.format("User with id %s not found", participantId));
+            log.error(String.format("User with id %s not found", participantId));
             throw new Exception("User not found");
         }
 
@@ -228,7 +236,7 @@ public class BatchImportService {
             try {
                 saveWorkoutAmount(user, row);
             } catch (Exception e){
-                logger.error("Error occurs when processing row " + (i+1) + ": " + e.getMessage());
+                log.error("Error occurs when processing row " + (i+1) + ": " + e.getMessage());
             }
         }
     }
@@ -407,7 +415,7 @@ public class BatchImportService {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             return LocalDateTime.parse(dateTime, formatter);
         } catch (Exception e) {
-            logger.error("Error parsing dateTime: " + dateTime);
+            log.error("Error parsing dateTime: " + dateTime);
             return LocalDateTime.now();
         }
     }
@@ -523,6 +531,88 @@ public class BatchImportService {
             default:
                 return MentalStrength.NaN;
         }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public RegisterResult registerWithExerciseData(String username, String rawPassword, MultipartFile jsonFile) {
+        if (userRepository.existsByUsername(username)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
+        }
+
+        System.out.println("哈哈哈哈哈哈");
+        // parse JSON（Just read the memory stream; if the file is large, switch to streaming/temporary file）
+        JsonNode root;
+        try (InputStream in = jsonFile.getInputStream()) {
+            root = mapper.readTree(in);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid JSON file");
+        }
+
+        User u = new User();
+        u.setUsername(username);
+        u.setPassword(passwordEncoder.encode(rawPassword));
+        u.setRole(Role.USER);
+        User saved = userRepository.save(u);
+        Long userId = saved.getId();
+
+        // BodyComposition
+        double bmi = root.path("basicMetrics").path("bmi").asDouble(Double.NaN);
+        System.out.println("bmi:" + bmi);
+        if (!Double.isNaN(bmi)) {
+            BodyComposition bc = new BodyComposition(u);
+            bc.setBMI(bmi);
+            bodyCompositionRepository.save(bc);
+        } else {
+            // throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "basicMetrics.bmi missing");
+        }
+
+        // BodyMetrics
+        JsonNode bmNode = root.path("basicMetrics");
+        Double height = bmNode.has("height") ? bmNode.get("height").asDouble() : null;
+        Double weight = bmNode.has("weight") ? bmNode.get("weight").asDouble() : null;
+        if (height != null || weight != null) {
+            BodyMetrics bm = new BodyMetrics(u);
+            if (height != null) bm.setHeight(height);
+            if (weight != null) bm.setWeight(weight);
+            bodyMetricsRepository.save(bm);
+        }
+
+        // Mental
+        JsonNode sleep = root.path("sleepStatistics");
+        if (!sleep.isMissingNode() && !sleep.isNull()) {
+            MentalHealthAndDailyRoutine m = new MentalHealthAndDailyRoutine(u);
+            if (sleep.has("weekdaysAvg")) m.setWeekdaySleepingAvgDuration(sleep.get("weekdaysAvg").asDouble());
+            if (sleep.has("weekendsAvg")) m.setWeekendSleepingAvgDuration(sleep.get("weekendsAvg").asDouble());
+            if (sleep.has("totalAvg"))    m.setTotalSleepingDuration(sleep.get("totalAvg").asDouble());
+            mentalHealthAndDailyRoutineRepository.save(m);
+        }
+
+        // WorkoutAmount
+        JsonNode actArr = root.path("activityData");
+        if (actArr.isArray()) {
+            DateTimeFormatter F = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            List<WorkoutAmount> batch = new ArrayList<>(actArr.size());
+            for (JsonNode n : actArr) {
+                WorkoutAmount wa = new WorkoutAmount(u);
+                if (n.hasNonNull("date")) {
+                    String s = n.get("date").asText();
+                    try { wa.setDateTime(LocalDateTime.parse(s, F)); }
+                    catch (Exception ignored) {}
+                }
+                if (n.hasNonNull("day"))  wa.setDay(n.get("day").asInt() + 1);    // 1..7
+                if (n.hasNonNull("hour")) wa.setHour(n.get("hour").asInt());  // 0..23
+
+                if (n.has("mvpaSeconds"))  wa.setSumSecondsMVPA3(n.get("mvpaSeconds").asInt());
+                if (n.has("lightSeconds")) wa.setSumSecondsLight3(n.get("lightSeconds").asInt());
+                if (n.has("mvpaTimes"))    wa.setTimesMVPA3(n.get("mvpaTimes").asInt());
+                if (n.has("lightTimes"))   wa.setTimesLight3(n.get("lightTimes").asInt());
+
+                batch.add(wa);
+            }
+            workoutAmountRepository.saveAll(batch);
+        }
+
+        return new RegisterResult(userId, saved.getUsername());
     }
 }
 

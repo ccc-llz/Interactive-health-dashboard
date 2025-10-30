@@ -1,28 +1,24 @@
 package com.cs79_1.interactive_dashboard.Service;
 
+import com.cs79_1.interactive_dashboard.DTO.BodyCompositionSummary;
 import com.cs79_1.interactive_dashboard.DTO.BodyMetricsSummaryDTO;
+import com.cs79_1.interactive_dashboard.DTO.DietaryIntake.FoodIntakeResultDto;
+import com.cs79_1.interactive_dashboard.DTO.UserInfoResponse;
+import com.cs79_1.interactive_dashboard.Entity.BodyComposition;
 import com.cs79_1.interactive_dashboard.Entity.BodyMetrics;
 import com.cs79_1.interactive_dashboard.Entity.User;
-import com.cs79_1.interactive_dashboard.Entity.BodyComposition;
+import com.cs79_1.interactive_dashboard.Entity.UserPreference;
 import com.cs79_1.interactive_dashboard.Enum.HFZClassification;
-import com.cs79_1.interactive_dashboard.Repository.BodyMetricsRepository;
-import com.cs79_1.interactive_dashboard.Repository.BodyCompositionRepository;
-import com.cs79_1.interactive_dashboard.Repository.WeeklyIntakeRepository;
-import com.cs79_1.interactive_dashboard.Repository.MentalHealthAndDailyRoutineRepository;
-import com.cs79_1.interactive_dashboard.Repository.WeightMetricsRepository;
-import com.cs79_1.interactive_dashboard.DTO.BodyCompositionSummary;
-import com.cs79_1.interactive_dashboard.DTO.DietaryIntake.FoodIntakeResultDto;
-
-import com.cs79_1.interactive_dashboard.DTO.UserInfoResponse;
-
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.cs79_1.interactive_dashboard.Exception.UserNotExistException;
+import com.cs79_1.interactive_dashboard.Repository.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+
+@Slf4j
 @Service
 public class StaticInfoService {
     @Autowired
@@ -42,10 +38,7 @@ public class StaticInfoService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-
-    private final static Logger logger = LoggerFactory.getLogger(StaticInfoService.class);
-
+    
     public double[] getFourDimensionalZScores(long userId){
         try {
             Optional<User> userOptional = userService.getUserByUserId(userId);
@@ -62,7 +55,7 @@ public class StaticInfoService {
 
             throw new RuntimeException("User not exist");
         } catch (Exception e) {
-            logger.error("Error in getFourDimensionalZScores by UserId {}", userId, e);
+            log.error("Error in getFourDimensionalZScores by UserId {}", userId, e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -83,7 +76,7 @@ public class StaticInfoService {
 
             throw new RuntimeException("User not exist");
         } catch (Exception e) {
-            logger.error("Error in getFourDimensionalL by UserId {}", userId, e);
+            log.error("Error in getFourDimensionalL by UserId {}", userId, e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -104,7 +97,7 @@ public class StaticInfoService {
 
             throw new RuntimeException("User not exist");
         } catch (Exception e) {
-            logger.error("Error in getFourDimensionalM by UserId {}", userId, e);
+            log.error("Error in getFourDimensionalM by UserId {}", userId, e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -125,7 +118,7 @@ public class StaticInfoService {
 
             throw new RuntimeException("User not exist");
         } catch (Exception e) {
-            logger.error("Error in getFourDimensionalS by UserId {}", userId, e);
+            log.error("Error in getFourDimensionalS by UserId {}", userId, e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -146,7 +139,7 @@ public class StaticInfoService {
 
             throw new RuntimeException("User not exist");
         } catch (Exception e) {
-            logger.error("Error in getFourDimensionalPercentile by UserId {}", userId, e);
+            log.error("Error in getFourDimensionalPercentile by UserId {}", userId, e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -167,14 +160,14 @@ public class StaticInfoService {
 
             throw new RuntimeException("User not exist");
         } catch (Exception e) {
-            logger.error("Error in getFourDimensionalClassification by UserId {}", userId, e);
+            log.error("Error in getFourDimensionalClassification by UserId {}", userId, e);
             throw new RuntimeException(e.getMessage());
         }
     }
     
     private com.cs79_1.interactive_dashboard.Entity.MentalHealthAndDailyRoutine loadSleepRow(long userId) {
         return mentalHealthAndDailyRoutineRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new RuntimeException("No sleep row for user " + userId));
+                .orElseThrow(UserNotExistException::new);
     }
 
     public double getSchoolNightAvgHours(long userId) {
@@ -190,7 +183,7 @@ public class StaticInfoService {
     }
     public BodyCompositionSummary getBodyCompositionSummary(long userId) {
         BodyComposition bc = bodyCompositionRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("No body composition for user " + userId));
+                .orElseThrow(UserNotExistException::new);
 
         double fat = bc.getFatPercentage();
         double muscle = bc.getMuscleAmount();
@@ -216,14 +209,14 @@ public class StaticInfoService {
         dto.setWlgr50(wlgr50);
         dto.setWlgx625(wlgx625);
         dto.setWlgx50(wlgx50);
-        dto.setBmi(bmi);
+        dto.setBMI(bmi);
 
         return dto;
     }
 
     public BodyMetricsSummaryDTO getBodyMetricsSummary(long userId) {
         BodyMetrics bodyMetrics = bodyMetricsRepository.findByUserId(userId);
-        BodyComposition bodyComposition = bodyCompositionRepository.findByUserId(userId).orElseThrow();
+        BodyComposition bodyComposition = bodyCompositionRepository.findByUserId(userId).orElseThrow(UserNotExistException::new);
 
         double height = bodyMetrics.getHeight();
         double weight = bodyMetrics.getWeight();
@@ -236,7 +229,7 @@ public class StaticInfoService {
     }
 
     public String getHFZClassification(long userId) {
-        BodyComposition bc = bodyCompositionRepository.findByUserId(userId).orElseThrow();
+        BodyComposition bc = bodyCompositionRepository.findByUserId(userId).orElseThrow(UserNotExistException::new);
         HFZClassification classification = bc.getHfzBMI();
 
         return classification.name();
@@ -304,8 +297,11 @@ public class StaticInfoService {
         }
 
     }
+
     public UserInfoResponse getUserInfo(long userId) {
             Optional<User> userOptional = userService.getUserByUserId(userId);
+            UserPreference userPreference = userService.getOrCreateUserPreference(userId);
+
             if(userOptional.isPresent()){
                 User user = userOptional.get();
 
@@ -315,7 +311,8 @@ public class StaticInfoService {
                     user.getLastName(), 
                     user.getAgeYear(), 
                     user.getSex(),
-                    user.getId()
+                    user.getId(),
+                    userPreference.getAppearance().name()
                 );
 
                 return dto;
@@ -336,7 +333,7 @@ public class StaticInfoService {
             String password // optional
     ) {
         User user = userService.getUserByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User not exist"));
+                .orElseThrow(UserNotExistException::new);
 
         if (username != null) user.setUsername(username);
         if (firstName != null) user.setFirstName(firstName);
@@ -349,6 +346,7 @@ public class StaticInfoService {
         }
 
         userService.saveUser(user);
+        UserPreference userPreference = userService.getOrCreateUserPreference(userId);
 
         return new UserInfoResponse(
                 user.getUsername(),
@@ -356,7 +354,8 @@ public class StaticInfoService {
                 user.getLastName(),
                 user.getAgeYear(),
                 user.getSex(),
-                user.getId()
+                user.getId(),
+                userPreference.getAppearance().name()
         );
     }
 }

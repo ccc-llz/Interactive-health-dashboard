@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiClient } from "../../../service/axios";
 import { Spinner } from "@heroui/react";
+import { set } from "react-hook-form";
 
 type CategoryColor = {
     bg: string;
@@ -11,29 +12,28 @@ const categoryColors = (classification: string) => {
     const catColor: CategoryColor = { bg: 'bg-white', text: 'text-black' };
     switch (classification) {
         case 'HFZ':
-            catColor.bg = 'bg-green-300/50';
-            catColor.text = 'text-green-600';
+            catColor.bg = 'bg-green-300/50 dark:bg-green-800/60';
+            catColor.text = 'text-green-600 dark:text-green-300';
             break;
         case 'NIHR':
-            catColor.bg = 'bg-red-300/50';
-            catColor.text = 'text-red-600';
+            catColor.bg = 'bg-red-300/50 dark:bg-red-800/50';
+            catColor.text = 'text-red-600 dark:text-red-300';
             break;
         case 'NI':
-            catColor.bg = 'bg-orange-300/50';
-            catColor.text = 'text-orange-600';
+            catColor.bg = 'bg-orange-300/50 dark:bg-orange-700/50';
+            catColor.text = 'text-orange-600 dark:text-orange-300';
             break;
         case 'VL':
-            catColor.bg = 'bg-lime-300/50';
-            catColor.text = 'text-lime-600';
+            catColor.bg = 'bg-lime-300/50 dark:bg-lime-700/50';
+            catColor.text = 'text-lime-600 dark:text-lime-300';
             break;
         default:
-            catColor.bg = 'bg-gray-200/50';
-            catColor.text = 'text-gray-600'
+            catColor.bg = 'bg-gray-200/50 dark:bg-gray-800/50';
+            catColor.text = 'text-gray-600 dark:text-gray-300'
     }
     return catColor;
 }
 
-/* ---------- 内部统一结构 ---------- */
 type Metrics = {
     height: number;
     weight: number;
@@ -47,7 +47,7 @@ const ArcGauge: React.FC<{
     value: number;
     min?: number;
     max?: number;
-    size?: number;        // 宽度；高度= size/2
+    size?: number;        
     strokeWidth?: number;
 }> = ({ value, min = 10, max = 40, size = 220, strokeWidth = 12 }) => {
     const v = Math.min(Math.max(value, min), max);
@@ -60,13 +60,13 @@ const ArcGauge: React.FC<{
     const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
     const len = Math.PI * r;
 
-    const angle = Math.PI * (1 - pct); // 左->右
+    const angle = Math.PI * (1 - pct); 
     const knobX = cx + r * Math.cos(angle);
     const knobY = cy + r * Math.sin(angle);
 
     return (
         <svg width={size} height={size / 2.5} viewBox={`0 0 ${size} ${size / 2}`}>
-            <path d={arcPath} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={strokeWidth} />
+            <path d={arcPath} fill="none" stroke="rgba(0, 0, 0, 0.169)" strokeWidth={strokeWidth} />
             <defs>
                 <linearGradient id="bmiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#22c55e" />
@@ -88,14 +88,13 @@ const ArcGauge: React.FC<{
     );
 };
 
-/* ---------- 简洁三列 Tile（无徽标） ---------- */
 const Tile: React.FC<{ label: string; value: string; unit?: string }> = ({ label, value, unit }) => {
     return (
-        <div className="rounded-2xl bg-white shadow-sm border border-white/60 px-2 h-20 flex flex-col items-center justify-center text-center">
-            <div className="text-xs text-gray-500">{label}</div>
+        <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-white/60 dark:border-white/20 px-2 h-20 flex flex-col items-center justify-center text-center">
+            <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
             <div className="leading-tight mt-0.5">
                 <span
-                    className="font-semibold text-gray-900"
+                    className="font-semibold text-gray-900 dark:text-white/80"
                     style={{ fontSize: "clamp(1rem, 1.5vw, 1rem)", lineHeight: 1.1 }}
                 >
                     {value}
@@ -106,7 +105,6 @@ const Tile: React.FC<{ label: string; value: string; unit?: string }> = ({ label
     );
 };
 
-/* ---------- 主组件 ---------- */
 const BmiCard = ({ mock, ...props }: { mock?: Metrics, props?: React.ReactNode }) => {
     const [metrics, setMetrics] = useState<Metrics>();
     const [catColor, setColor] = useState(categoryColors('-'));
@@ -122,6 +120,8 @@ const BmiCard = ({ mock, ...props }: { mock?: Metrics, props?: React.ReactNode }
             setDataReady(true);
         } catch (error) {
             console.error(error);
+            setDataReady(true);
+            setMetrics(undefined);
         }
     }
 
@@ -137,6 +137,15 @@ const BmiCard = ({ mock, ...props }: { mock?: Metrics, props?: React.ReactNode }
             </div>
         )
     }
+    
+    if (!metrics) {
+        // No data overlay
+        return (
+           <div className="w-full h-full flex items-center justify-center backdrop-blur-sm text-gray-400 dark:text-gray-300">
+                No data
+            </div>
+        )
+    }
 
     return (
         <div
@@ -149,25 +158,23 @@ const BmiCard = ({ mock, ...props }: { mock?: Metrics, props?: React.ReactNode }
                 {/* <h1 className="w-fit opacity-100 rounded-lg text-gray-800 pl-1 tracking-tight text-lg font-bold font-[Nunito] flex-shrink-0">
                     Body Metrics
                 </h1> */}
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${catColor.bg} ${catColor.text} shadow-sm outline-1 outline-white/40`}>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${catColor.bg} ${catColor.text} shadow-sm outline-1 outline-white/40 dark:outline-gray-900/80`}>
                     {metrics?.classification ?? "—"}
                 </div>
             </div>
 
-            {/* 上半：弧线（固定高） + 居中 BMI 数字（完全分区，不重叠） */}
             <div className=" flex flex-col items-center">
                 <div className="h-fit w-full flex items-center justify-center">
                     <ArcGauge value={metrics?.bmi ?? 22} size={220} />
                 </div>
                 <div className="-mt-10 flex items-baseline gap-2">
-                    <div className="text-4xl font-bold leading-none text-gray-900">
+                    <div className="text-4xl font-bold leading-none text-gray-900 dark:text-white/90">
                         {metrics?.bmi != null ? metrics.bmi.toFixed(1) : "—"}
                     </div>
-                    <div className="text-xs text-gray-400">kg/m²</div>
+                    <div className="text-xs text-gray-400 dark:text-white/80">kg/m²</div>
                 </div>
             </div>
 
-            {/* 下半：固定三列，一排展示；无任何 badge */}
             <div className="grid grid-cols-3 gap-3 mt-5">
                 <Tile label="Height" value={metrics?.height != null ? metrics.height.toFixed(1) : "—"} unit="cm" />
                 <Tile label="Weight" value={metrics?.weight != null ? metrics.weight.toFixed(1) : "—"} unit="kg" />

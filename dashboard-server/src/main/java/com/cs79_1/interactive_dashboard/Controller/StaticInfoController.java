@@ -1,24 +1,31 @@
 package com.cs79_1.interactive_dashboard.Controller;
 
 import com.cs79_1.interactive_dashboard.DTO.*;
-
+import com.cs79_1.interactive_dashboard.DTO.DietaryIntake.FoodIntakeByCategory;
 import com.cs79_1.interactive_dashboard.DTO.DietaryIntake.FoodIntakeResultDto;
 import com.cs79_1.interactive_dashboard.DTO.Workout.WorkoutOverviewDTO;
-
+import com.cs79_1.interactive_dashboard.Entity.BodyMetrics;
+import com.cs79_1.interactive_dashboard.Entity.WeeklyIntake;
+import com.cs79_1.interactive_dashboard.Exception.UserNotExistException;
+import com.cs79_1.interactive_dashboard.Repository.WeeklyIntakeRepository;
 import com.cs79_1.interactive_dashboard.Security.SecurityUtils;
 import com.cs79_1.interactive_dashboard.Service.StaticInfoService;
 import com.cs79_1.interactive_dashboard.Service.StaticInfoService.FoodIntakeService;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import com.cs79_1.interactive_dashboard.Service.WorkoutAmountService;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @Controller
 @RequestMapping("/api/static")
 public class StaticInfoController {
@@ -36,9 +44,7 @@ public class StaticInfoController {
 
     @Autowired
     private WorkoutAmountService workoutAmountService;
-
-    private static final Logger logger = LoggerFactory.getLogger(StaticInfoController.class);
-
+    
     @GetMapping("/weight-metrics")
     public ResponseEntity<?> getWeightMetricsZScore() {
         long userId = SecurityUtils.getCurrentUserId();
@@ -86,42 +92,65 @@ public class StaticInfoController {
         }
     }
     @GetMapping("/sleep-summary")
-    public ResponseEntity<SleepSummary> getSleepSummary() {
+    public ResponseEntity<?> getSleepSummary() {
         long userId = SecurityUtils.getCurrentUserId();
 
-        double school = staticInfoService.getSchoolNightAvgHours(userId);
-        double weekend = staticInfoService.getWeekendNightAvgHours(userId);
-        double week = staticInfoService.getTotalWeekHours(userId);
+        try {
+            double school = staticInfoService.getSchoolNightAvgHours(userId);
+            double weekend = staticInfoService.getWeekendNightAvgHours(userId);
+            double week = staticInfoService.getTotalWeekHours(userId);
 
-        int thisWeekAvgMin = (int) Math.round((week / 7.0) * 60.0);
+            int thisWeekAvgMin = (int) Math.round((week / 7.0) * 60.0);
 
-        SleepSummary dto = new SleepSummary();
-        dto.setThisWeekAvgMin(thisWeekAvgMin);
-        dto.setSchoolNightAvgHrs(school);
-        dto.setWeekendNightAvgHrs(weekend);
+            SleepSummary dto = new SleepSummary();
+            dto.setThisWeekAvgMin(thisWeekAvgMin);
+            dto.setSchoolNightAvgHrs(school);
+            dto.setWeekendNightAvgHrs(weekend);
 
-        return ResponseEntity.ok(dto);
+            return ResponseEntity.ok(dto);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Failed fetching sleep summary for user with id " + userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/body-composition")
-    public ResponseEntity<BodyCompositionSummary> getBodyComposition() {
+    public ResponseEntity<?> getBodyComposition() {
         long userId = SecurityUtils.getCurrentUserId();
-        BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
-        return ResponseEntity.ok(dto);
+
+        try {
+            BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
+            return ResponseEntity.ok(dto);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Failed fetching body composition for user with id " + userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/body-composition/wlgr-wlgx")
-    public ResponseEntity<Map<String, Double>> getWlgrWlgx() {
+    public ResponseEntity<?> getWlgrWlgx() {
         long userId = SecurityUtils.getCurrentUserId();
-        BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
 
-        Map<String, Double> result = new HashMap<>();
-        result.put("wlgr625", dto.getWlgr625());
-        result.put("wlgr50", dto.getWlgr50());
-        result.put("wlgx625", dto.getWlgx625());
-        result.put("wlgx50", dto.getWlgx50());
+        try {
+            BodyCompositionSummary dto = staticInfoService.getBodyCompositionSummary(userId);
 
-        return ResponseEntity.ok(result);
+            Map<String, Double> result = new HashMap<>();
+            result.put("wlgr625", dto.getWlgr625());
+            result.put("wlgr50", dto.getWlgr50());
+            result.put("wlgx625", dto.getWlgx625());
+            result.put("wlgx50", dto.getWlgx50());
+
+            return ResponseEntity.ok(result);
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
+        } catch (Exception e) {
+            log.error("Failed fetching bioelectrical data for user with id " + userId, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/workout-overview")
@@ -142,30 +171,11 @@ public class StaticInfoController {
             BodyMetricsSummaryDTO dto = staticInfoService.getBodyMetricsSummary(userId);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
-            logger.error("Error fetching body metrics summary for user {}", userId, e);
+            log.error("Error fetching body metrics summary for user {}", userId, e);
             return ResponseEntity.internalServerError().build();
         }
     }
-
-    @RestController
-    @RequestMapping("/api/food-intake")
-    public class FoodIntakeController {
-
-        @GetMapping("/food-intake")
-        public ResponseEntity<FoodIntakeResultDto> getFoodIntake() {
-            long userId = SecurityUtils.getCurrentUserId();
-            FoodIntakeResultDto dto = foodIntakeService.calculateFoodIntake(userId);
-            return ResponseEntity.ok(dto);
-        }
-        @Autowired
-        private FoodIntakeService foodIntakeService;
-
-        @GetMapping("/rings")
-        public FoodIntakeResultDto getFoodIntakeRings() {
-            long userId = SecurityUtils.getCurrentUserId();
-            return foodIntakeService.calculateFoodIntake(userId);
-        }
-    }
+   
 
     @GetMapping("/user_info")
     public ResponseEntity<UserInfoResponse> getUserInfo() {
@@ -190,20 +200,22 @@ public class StaticInfoController {
             Integer sex = req.getSex() != null ? req.getSex() : existing.getSex();
             String password = req.getPassword();
             UserInfoResponse updated = staticInfoService.updateUserInfo(
-                userId,
-                username,
-                firstName,
-                lastName,
-                ageYear,
-                sex,
-                password
+                    userId,
+                    username,
+                    firstName,
+                    lastName,
+                    ageYear,
+                    sex,
+                    password
             );
             return ResponseEntity.ok(updated);
-
+        } catch (UserNotExistException e) {
+            return ResponseEntity.badRequest().body("User with id " + userId + " does not exist");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                                 .body(null);
         }
     }
-        
+
+
 }
