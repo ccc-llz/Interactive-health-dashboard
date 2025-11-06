@@ -21,7 +21,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
     <div className="border-b border-gray-200 pb-4">
       <p className="font-medium mb-2">{question}</p>
 
-      {/* 如果是开放题 */}
+      {/* If open questions */}
       {open ? (
         <textarea
           className="w-full border rounded-md p-2 text-sm focus:ring focus:ring-blue-100"
@@ -31,7 +31,7 @@ const QuestionItem: React.FC<QuestionItemProps> = ({
           onChange={(e) => onChange(id, e.target.value)}
         />
       ) : (
-        /* 如果是选择题，确保 options 存在再 map */
+        /* If multiple choices, make sure options exist then mapping */
         <div className="flex flex-col gap-1 ml-4">
           {options && options.length > 0 ? (
             options.map((opt, i) => (

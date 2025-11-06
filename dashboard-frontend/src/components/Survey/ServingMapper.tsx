@@ -45,10 +45,8 @@ const mapFrequency = {
     "3 glasses or more a day": 3,
   };
 
-  // 🥖 Bread
   if (answers.bread) servings["bread"] = mapFrequency[answers.bread] ?? 0;
 
-  // 🧈 Butter / margarine
   if (answers.butter) {
     const map = {
       Never: 0,
@@ -60,10 +58,8 @@ const mapFrequency = {
     servings["butter"] = map[answers.butter] ?? 0;
   }
 
-  // 🥛 Milk
   if (answers.milk) servings["milk"] = mapCups[answers.milk] ?? 0;
 
-  // 🥬 Vegetables
   if (answers.vegetables) {
     const map = {
       "I don't eat vegetables": 0,
@@ -76,7 +72,6 @@ const mapFrequency = {
     servings["vegetables"] = map[answers.vegetables] ?? 0;
   }
 
-  // 🍎 Fruits
   if (answers.fruits) {
     const map = {
       "I don't eat fruits": 0,
@@ -88,70 +83,48 @@ const mapFrequency = {
     servings["fruits"] = map[answers.fruits] ?? 0;
   }
 
-  // 💧 Water
   if (answers.water) servings["water"] = mapGlasses[answers.water] ?? 0;
 
-  // 🧃 Sweet drinks
   if (answers.juice) servings["sweet_drinks"] = mapSugarDrink[answers.juice] ?? 0;
 
-  // 🧀 Cheese
   if (answers.cheese) servings["cheese"] = mapFrequency[answers.cheese] ?? 0;
 
-  // 🥣 Yoghurt
   if (answers.yoghurt) servings["yoghurt"] = mapFrequency[answers.yoghurt] ?? 0;
 
-  // 🥣 Breakfast cereal
   if (answers.cereal) servings["cereal"] = mapFrequency[answers.cereal] ?? 0;
 
-  // 🍚 Pasta / Rice
   if (answers.pasta) servings["pasta_rice"] = mapFrequency[answers.pasta] ?? 0;
 
-  // 🫘 Lentils / beans
   if (answers.lentils) servings["lentils"] = mapFrequency[answers.lentils] ?? 0;
 
-  // 🍠 Tubers
   if (answers.tubers) servings["tubers"] = mapFrequency[answers.tubers] ?? 0;
 
-  // 🥩 Red meat
   if (answers.red_meat) servings["red_meat"] = mapFrequency[answers.red_meat] ?? 0;
 
-  // 🍗 White meat
   if (answers.white_meat) servings["white_meat"] = mapFrequency[answers.white_meat] ?? 0;
 
-  // 🐟 Fish
   if (answers.fish) servings["fish"] = mapFrequency[answers.fish] ?? 0;
 
-  // 🐖 Pork
   if (answers.pork) servings["pork"] = mapFrequency[answers.pork] ?? 0;
 
-  // 🥚 Eggs
   if (answers.eggs) servings["eggs"] = mapFrequency[answers.eggs] ?? 0;
 
-  // 🥫 Canned meat
   if (answers.canned_meat) servings["canned_meat"] = mapFrequency[answers.canned_meat] ?? 0;
 
-  // 🌭 Charcuterie
   if (answers.charcuterie) servings["charcuterie"] = mapFrequency[answers.charcuterie] ?? 0;
 
-  // 🍜 Noodle soup
   if (answers.noodle_soup) servings["noodle_soup"] = mapFrequency[answers.noodle_soup] ?? 0;
 
-  // 🍟 French fries
   if (answers.french_fries) servings["french_fries"] = mapFrequency[answers.french_fries] ?? 0;
 
-  // 🥔 Chips / salty snacks
   if (answers.chips) servings["chips"] = mapFrequency[answers.chips] ?? 0;
 
-  // 🍕 Takeaway
   if (answers.takeaway) servings["takeaway_food"] = mapFrequency[answers.takeaway] ?? 0;
 
-  // 🍬 Confectionary
   if (answers.confectionary) servings["confectionary"] = mapFrequency[answers.confectionary] ?? 0;
 
-  // 🍰 Sweet foods
   if (answers.sweet_foods) servings["sweet_foods"] = mapFrequency[answers.sweet_foods] ?? 0;
 
-  // 🍯 Sugar teaspoons
   if (answers.sugar_teaspoons) servings["added_sugar_teaspoons"] = Number(answers.sugar_teaspoons) ?? 0;
 
   return servings;

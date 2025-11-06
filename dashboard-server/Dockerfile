@@ -2,18 +2,18 @@ FROM maven:3.9-eclipse-temurin-17
 
 WORKDIR /app
 
-# 复制项目文件
+# Copy Project Files
 COPY pom.xml .
 COPY src src
 
-# 直接用 mvn 命令（不用 wrapper）
+# maven clear
 RUN mvn clean package -DskipTests -B
 
-# 调试：查看生成的文件
+# list files
 RUN ls -la target/
 RUN find target/ -name "*.jar" -type f
 
 EXPOSE 8080
 
-# 使用通配符启动
+# boot up
 CMD ["sh", "-c", "java -jar target/*.jar"]
